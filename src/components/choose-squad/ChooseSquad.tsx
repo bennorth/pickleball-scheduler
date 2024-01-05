@@ -66,7 +66,7 @@ export function ChooseSquad() {
   const makeSchedule = useStoreActions((a) => a.generateSchedule);
   const selectAll = useStoreActions((a) => a.setSquadToFullPool);
   const clearSelection = useStoreActions((a) => a.clearSquad);
-  const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
+  const [sortOrder /*, setSortOrder */] = useState<SortOrder>(defaultSortOrder);
 
   const nSquadMembers = squad.size;
   const toggleIsInSquad = (personId: number) => {

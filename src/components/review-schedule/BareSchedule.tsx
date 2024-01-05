@@ -1,12 +1,16 @@
-import { useContext } from "react";
-import { PersonId, PoolMember } from "../../model/player-pool";
+import { PersonId } from "../../model/player-pool";
 import {
   CourtAllocation,
   Pair,
+  PersonRole,
   TimeSlotAllocation,
 } from "../../model/scheduling";
 import { range } from "itertools";
-import { PersonLutContext, makePersonLutContext } from "./context";
+import {
+  RenderScheduleContext,
+  makeRenderScheduleContext,
+  useRenderScheduleContext,
+} from "./context";
 import { useStoreActions, useStoreState } from "../../store";
 import { useLoadedValue } from "../hooks";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
@@ -18,11 +22,16 @@ type PairDragItem = { iSlot: number; personId: PersonId };
 type PairDragProps = { isDragging: boolean };
 type PairDropProps = { isOver: boolean; canDrop: boolean };
 
-type PersonViewProps = { iSlot: number; poolMember: PoolMember };
-function PersonView({ iSlot, poolMember }: PersonViewProps) {
+type PersonViewProps = {
+  iSlot: number;
+  personId: PersonId;
+  role: PersonRole;
+};
+function PersonView({ iSlot, personId, role }: PersonViewProps) {
+  const ctx = useRenderScheduleContext();
   const swapPersonsInSlot = useStoreActions((a) => a.swapPersonsInSlot);
 
-  const personId = poolMember.id;
+  const poolMember = ctx.personFromId(personId);
 
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
@@ -57,7 +66,21 @@ function PersonView({ iSlot, poolMember }: PersonViewProps) {
     [iSlot, personId]
   );
 
-  const classes = classNames("PersonView", { isDragging, isOver, canDrop });
+  const ruleViolations = ctx.ruleViolationsFromId(personId);
+  console.log("PersonView:", personId, ruleViolations);
+
+  const sittingOutTooManyTimes =
+    ruleViolations.some(
+      (violation) =>
+        violation.kind === "sitting-out-fairness" &&
+        violation.subKind === "too-many"
+    ) && role === "sitting-out";
+
+  const classes = classNames(
+    "PersonView",
+    { isDragging, isOver, canDrop },
+    { sittingOutTooManyTimes }
+  );
   return (
     <div ref={drag} className="drag-container">
       <div ref={drop} className="drop-target">
@@ -76,7 +99,6 @@ function PairView({ iSlot, pair }: PairViewProps) {
   // Identify a pair by the ID of the first person in it.
   const personId = pair[0];
 
-  const personFromId = useContext(PersonLutContext);
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
       type: "pair",
@@ -115,9 +137,9 @@ function PairView({ iSlot, pair }: PairViewProps) {
     <div ref={drag} className="drag-container">
       <div ref={drop} className="drop-target">
         <div className={classes}>
-          <PersonView iSlot={iSlot} poolMember={personFromId(pair[0])} />
+          <PersonView iSlot={iSlot} personId={pair[0]} role="playing" />
           <div className="pair-joiner">+</div>
-          <PersonView iSlot={iSlot} poolMember={personFromId(pair[1])} />
+          <PersonView iSlot={iSlot} personId={pair[1]} role="playing" />
         </div>
       </div>
     </div>
@@ -154,7 +176,6 @@ export function TimeSlotView({ iSlot, name, slot }: TimeSlotViewProps) {
 
 type BenchViewProps = { iSlot: number; bench: TimeSlotAllocation["bench"] };
 function BenchView({ iSlot, bench }: BenchViewProps) {
-  const personFromId = useContext(PersonLutContext);
   return (
     <td className="on-bench">
       {bench.map((personId) => {
@@ -162,7 +183,8 @@ function BenchView({ iSlot, bench }: BenchViewProps) {
           <PersonView
             key={personId}
             iSlot={iSlot}
-            poolMember={personFromId(personId)}
+            personId={personId}
+            role="sitting-out"
           />
         );
       })}
@@ -178,11 +200,11 @@ export function BareSchedule() {
   if (schedule == null) {
     return <div>Error no schedule</div>;
   }
-  const displayTitle = scheduleParams.displayTitle;
 
+  const displayTitle = scheduleParams.displayTitle;
   const slotNames = scheduleParams.slotNames;
 
-  const personFromId = makePersonLutContext(pool);
+  const context = makeRenderScheduleContext(pool, schedule);
 
   const header = (
     <tr>
@@ -195,7 +217,7 @@ export function BareSchedule() {
   );
 
   return (
-    <PersonLutContext.Provider value={personFromId}>
+    <RenderScheduleContext.Provider value={context}>
       <DndProvider backend={HTML5Backend}>
         <div className="BareSchedule">
           <h1>{displayTitle}</h1>
@@ -214,6 +236,6 @@ export function BareSchedule() {
           </table>
         </div>
       </DndProvider>
-    </PersonLutContext.Provider>
+    </RenderScheduleContext.Provider>
   );
 }

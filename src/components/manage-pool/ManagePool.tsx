@@ -134,12 +134,12 @@ function useUiAction(mapActions: (actions: Actions<ModalUiState>) => any) {
   return useStoreActions((a) => mapActions(a.modalUiState));
 }
 
-type SortOrder = {
-  direction: "ascending" | "descending";
-  key: "name";
-};
+// type SortOrder = {
+//   direction: "ascending" | "descending";
+//   key: "name";
+// };
 
-const defaultSortOrder = { direction: "ascending", key: "name" } as const;
+// const defaultSortOrder = { direction: "ascending", key: "name" } as const;
 
 export function ManagePool() {
   const pool = useLoadedValue((s) => s.poolState);
@@ -151,7 +151,7 @@ export function ManagePool() {
   const cancelModal = useUiAction((a) => a.cancel);
   const editPersonName = useStoreActions((a) => a.editPersonName);
   const deletePerson = useStoreActions((a) => a.deletePerson);
-  const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
+  // const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
 
   const context: PersonCardContextT = {
     activeModal,

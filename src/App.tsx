@@ -1,6 +1,5 @@
 import { useStoreActions, useStoreState } from "./store";
 import "./App.scss";
-import { ChooseSquad } from "./components/choose-squad/ChooseSquad";
 import { ManagePool } from "./components/manage-pool/ManagePool";
 import { MenuBar } from "./components/MenuBar";
 import { ignoreValue } from "./utils";
@@ -8,6 +7,7 @@ import { useEffect } from "react";
 import { ReviewSchedule } from "./components/review-schedule/ReviewSchedule";
 import classNames from "classnames";
 import { PrintLayout as SchedulePrintLayout } from "./components/review-schedule/PrintLayout";
+import { ChooseSquadAndSlots } from "./components/choose-squad/ChooseSquadAndSlots";
 
 function PageContent() {
   const refreshFromDb = useStoreActions((a) => a.refreshFromDb);
@@ -27,7 +27,7 @@ function PageContent() {
         case "manage-pool":
           return <ManagePool />;
         case "choose-squad":
-          return <ChooseSquad />;
+          return <ChooseSquadAndSlots />;
         case "review-schedule":
           return <ReviewSchedule />;
         case "schedule-print-layout":

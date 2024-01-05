@@ -43,6 +43,10 @@ type DeletePersonArgs = { personId: PersonId };
 type ToggleIsInSquadArgs = { personId: number };
 type EnsureNotInSquadArgs = { personId: number };
 
+type AddScheduleSlotArgs = { name: string };
+type EditScheduleSlotNameArgs = { iSlot: number; newName: string };
+type DeleteScheduleSlotArgs = { iSlot: number };
+
 type SwapPairsInSlotArgs = {
   iSlot: number;
   personId0: PersonId;
@@ -75,6 +79,9 @@ export type AppState = {
 
   scheduleParamsState: ScheduleParamsState;
   setScheduleParamsState: Action<AppState, ScheduleParamsState>;
+  addScheduleSlot: Thunk<AppState, AddScheduleSlotArgs>;
+  editScheduleSlotName: Thunk<AppState, EditScheduleSlotNameArgs>;
+  deleteScheduleSlot: Thunk<AppState, DeleteScheduleSlotArgs>;
 
   schedule: Schedule | undefined;
   setSchedule: Action<AppState, Schedule | undefined>;
@@ -135,6 +142,19 @@ export let appState: AppState = {
 
   scheduleParamsState: loadedFromDbStaleState,
   setScheduleParamsState: propSetterAction("scheduleParamsState"),
+
+  addScheduleSlot: thunk(async (a, { name }) => {
+    await dexieDb.addScheduleSlot(name);
+    a.setScheduleParamsState(loadedFromDbStaleState);
+  }),
+  editScheduleSlotName: thunk(async (a, { iSlot, newName }) => {
+    await dexieDb.editScheduleSlotName(iSlot, newName);
+    a.setScheduleParamsState(loadedFromDbStaleState);
+  }),
+  deleteScheduleSlot: thunk(async (a, { iSlot }) => {
+    await dexieDb.deleteScheduleSlot(iSlot);
+    a.setScheduleParamsState(loadedFromDbStaleState);
+  }),
 
   schedule: undefined,
   setSchedule: propSetterAction("schedule"),

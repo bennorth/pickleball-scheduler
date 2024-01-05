@@ -2,9 +2,11 @@ import Dexie from "dexie";
 import { ScheduleParams, ScheduleParams_default } from "../model/app";
 import { PersonId, PoolMember } from "../model/player-pool";
 
+type ScheduleParamsRecord = { id: number } & ScheduleParams;
+
 export class AppDexieStorage extends Dexie {
   _poolMembers: Dexie.Table<PoolMember, number>;
-  _scheduleParams: Dexie.Table<ScheduleParams, number>;
+  _scheduleParams: Dexie.Table<ScheduleParamsRecord, number>;
 
   constructor() {
     super("pickleball");
@@ -30,6 +32,28 @@ export class AppDexieStorage extends Dexie {
     await this._poolMembers.add(poolMember as PoolMember);
   }
 
+  async addScheduleSlot(name: string) {
+    let params = await this.scheduleParamsRecord_();
+    params.slotNames.push(name);
+    await this._scheduleParams.put(params);
+  }
+
+  async editScheduleSlotName(iSlot: number, newName: string) {
+    let params = await this.scheduleParamsRecord_();
+    if (iSlot < 0 || iSlot >= params.slotNames.length)
+      throw new Error("bad slot index");
+    params.slotNames[iSlot] = newName;
+    await this._scheduleParams.put(params);
+  }
+
+  async deleteScheduleSlot(iSlot: number) {
+    let params = await this.scheduleParamsRecord_();
+    if (iSlot < 0 || iSlot >= params.slotNames.length)
+      throw new Error("bad slot index");
+    params.slotNames.splice(iSlot, 1);
+    await this._scheduleParams.put(params);
+  }
+
   async editPersonName(personId: PersonId, newName: string) {
     let mRecord = await this._poolMembers.get(personId);
     if (mRecord == null) {
@@ -43,18 +67,24 @@ export class AppDexieStorage extends Dexie {
     await this._poolMembers.delete(personId);
   }
 
-  async scheduleParams() {
+  async scheduleParamsRecord_(): Promise<ScheduleParamsRecord> {
     const paramSets = await this._scheduleParams.toArray();
     const nSets = paramSets.length;
     if (nSets === 0) {
-      await this._scheduleParams.add(ScheduleParams_default);
-      return ScheduleParams_default;
+      const id = await this._scheduleParams.add(
+        ScheduleParams_default as ScheduleParamsRecord
+      );
+      return { id, ...ScheduleParams_default };
     } else {
       if (nSets > 1) {
         console.warn(`found ${nSets} scheduleParams sets; returning first`);
       }
       return paramSets[0];
     }
+  }
+
+  async scheduleParams(): Promise<ScheduleParams> {
+    return await this.scheduleParamsRecord_();
   }
 }
 

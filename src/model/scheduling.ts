@@ -51,6 +51,8 @@ type BenchPersonPath = {
 
 type PersonPath = PlayingPersonPath | BenchPersonPath;
 
+export type PersonRole = "playing" | "sitting-out";
+
 export function randomSchedule(
   squad: Array<PersonId>,
   params: ScheduleParams
@@ -69,17 +71,21 @@ export function randomSchedule(
 
   Sort order for squad selection (name asc/desc and also is-selected asc/desc)
 
-  Fair sitting out.
+  Fair sitting out --- but allow manual construction where unfair.
 
-  Avoid duplicate pairings.
+  Avoid duplicate pairings --- but allow manual construction of them.
+
+  Highlight unfair sittings-out and dup pairings.
+
+  -----------------------------------------------------------------------------
+
+  Done:
 
   Swap pairs within timeslot.
 
   Swap persons within timeslot including with sitting-out people.
 
   Timeslots are free text labels.  UI can be to right of squad selection list.
-
-  Highlight duplicate pairings.
 
   */
 
@@ -187,4 +193,64 @@ export function withPersonsSwapped(
   arr1[path1.iPerson] = tmp;
 
   return newSchedule;
+}
+
+function scheduleStats(schedule: Schedule) {
+  const nSlots = schedule.timeSlots.length;
+  const slot = schedule.timeSlots[0];
+  const nCourts = slot.courtAllocations.length;
+  const nPlaying = nCourts * nPlayersPerCourt;
+  const nSittingOut = slot.bench.length;
+  const nPersons = nPlaying + nSittingOut;
+  return { nSlots, nCourts, nPlaying, nSittingOut, nPersons };
+}
+
+type SittingOutFairnessViolation = {
+  kind: "sitting-out-fairness";
+  personId: PersonId;
+  subKind: "too-few" | "too-many";
+};
+
+function sittingOutFairnessViolations(schedule: Schedule) {
+  const stats = scheduleStats(schedule);
+  const nSlotsFairlySittingOut =
+    (stats.nSittingOut * stats.nSlots) / stats.nPersons;
+
+  const minNSlots = Math.floor(nSlotsFairlySittingOut);
+  const maxNSlots = Math.ceil(nSlotsFairlySittingOut);
+
+  let nSlotsSittingOut = new Map<PersonId, number>();
+  for (const slot of schedule.timeSlots) {
+    for (const personId of slot.bench) {
+      const nTimes = nSlotsSittingOut.get(personId) ?? 0;
+      nSlotsSittingOut.set(personId, nTimes + 1);
+    }
+  }
+
+  let violations: Array<SittingOutFairnessViolation> = [];
+  for (const [personId, nSlots] of nSlotsSittingOut.entries()) {
+    if (nSlots < minNSlots)
+      violations.push({
+        kind: "sitting-out-fairness",
+        personId,
+        subKind: "too-few",
+      });
+    if (nSlots > maxNSlots)
+      violations.push({
+        kind: "sitting-out-fairness",
+        personId,
+        subKind: "too-many",
+      });
+  }
+
+  return violations;
+}
+
+export type RuleViolation = SittingOutFairnessViolation;
+
+export function scheduleRuleViolations(
+  schedule: Schedule
+): Array<RuleViolation> {
+  const sittingOutFairness = sittingOutFairnessViolations(schedule);
+  return sittingOutFairness;
 }

@@ -37,7 +37,8 @@ h1.page-name {
   margin-bottom: 1rem;
 }
 
-.ManagePool {
+.ManagePool,
+.ManageSlots {
   .pool-members {
     margin: auto;
     width: $player-card-width;
@@ -112,6 +113,11 @@ h1.page-name {
   }
 }
 
+.ChooseSquadAndSlots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
 .BareSchedule {
   background-color: #eee;
   padding: 1rem 0px;
@@ -151,16 +157,13 @@ table.ScheduleView {
 
   .PairView {
     user-select: none;
-    cursor: pointer;
+    cursor: grab;
     padding: 0.25rem;
     border-radius: 4px;
     display: grid;
     grid-template-columns: auto auto auto;
     justify-content: center;
     align-items: baseline;
-    &:hover {
-      background-color: #ff8;
-    }
 
     &.canDrop {
       background-color: #ffd;
@@ -181,9 +184,8 @@ table.ScheduleView {
   .PersonView {
     padding: 4px;
     border-radius: 4px;
-    &:hover {
-      background-color: #dd6;
-    }
+    user-select: none;
+    cursor: grab;
     &.canDrop {
       background-color: #ffd;
       &.isOver {
@@ -193,6 +195,9 @@ table.ScheduleView {
     &.isDragging {
       background-color: inherit;
       color: #aaa;
+    }
+    &.sittingOutTooManyTimes {
+      background-color: red;
     }
   }
 
