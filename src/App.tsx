@@ -1,35 +1,53 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useStoreActions, useStoreState } from "./store";
+import "./App.scss";
+import { ChooseSquad } from "./components/choose-squad/ChooseSquad";
+import { ManagePool } from "./components/manage-pool/ManagePool";
+import { MenuBar } from "./components/MenuBar";
+import { ignoreValue } from "./utils";
+import { useEffect } from "react";
+import { ReviewSchedule } from "./components/review-schedule/ReviewSchedule";
+import classNames from "classnames";
+import { PrintLayout as SchedulePrintLayout } from "./components/review-schedule/PrintLayout";
 
-function App() {
-  const [count, setCount] = useState(0)
+function PageContent() {
+  const refreshFromDb = useStoreActions((a) => a.refreshFromDb);
+  const page = useStoreState((s) => s.page);
+  const poolState = useStoreState((s) => s.poolState);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+  useEffect(ignoreValue(refreshFromDb));
+
+  switch (poolState.kind) {
+    case "stale":
+    case "in-progress":
+      return <div>LOADING...</div>;
+    case "failed":
+      return <div>Error sorry</div>;
+    case "loaded":
+      switch (page) {
+        case "manage-pool":
+          return <ManagePool />;
+        case "choose-squad":
+          return <ChooseSquad />;
+        case "review-schedule":
+          return <ReviewSchedule />;
+        case "schedule-print-layout":
+          return <SchedulePrintLayout />;
+        default:
+          return <div>ERROR</div>;
+      }
+  }
 }
 
-export default App
+export function App() {
+  const page = useStoreState((s) => s.page);
+
+  const mMenuBar = page !== "schedule-print-layout" ? <MenuBar /> : null;
+
+  const classes = classNames("App", `page-${page}`);
+  return (
+    <div className={classes}>
+      {mMenuBar}
+      <PageContent />
+    </div>
+  );
+}
