@@ -4,6 +4,7 @@ import {
   Pair,
   PersonRole,
   TimeSlotAllocation,
+  pairKeyFromIds,
 } from "../../model/scheduling";
 import { range } from "itertools";
 import {
@@ -66,15 +67,10 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
     [iSlot, personId]
   );
 
-  const ruleViolations = ctx.ruleViolationsFromId(personId);
-  console.log("PersonView:", personId, ruleViolations);
-
+  const ruleViolations = ctx.sittingOutFairnessViolationsFromId(personId);
   const sittingOutTooManyTimes =
-    ruleViolations.some(
-      (violation) =>
-        violation.kind === "sitting-out-fairness" &&
-        violation.subKind === "too-many"
-    ) && role === "sitting-out";
+    ruleViolations.some((violation) => violation.subKind === "too-many") &&
+    role === "sitting-out";
 
   const classes = classNames(
     "PersonView",
@@ -94,10 +90,14 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
 type PairViewProps = { iSlot: number; pair: Pair };
 function PairView({ iSlot, pair }: PairViewProps) {
+  const ctx = useRenderScheduleContext();
   const swapPairsInSlot = useStoreActions((a) => a.swapPairsInSlot);
 
   // Identify a pair by the ID of the first person in it.
   const personId = pair[0];
+  const pairKey = pairKeyFromIds(pair);
+  const ruleViolations = ctx.noDuplicatePairsViolationsFromPairKey(pairKey);
+  const duplicated = ruleViolations.length > 0;
 
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
@@ -132,7 +132,11 @@ function PairView({ iSlot, pair }: PairViewProps) {
     [iSlot, personId]
   );
 
-  const classes = classNames("PairView", { isDragging, isOver, canDrop });
+  const classes = classNames(
+    "PairView",
+    { isDragging, isOver, canDrop },
+    { duplicated }
+  );
   return (
     <div ref={drag} className="drag-container">
       <div ref={drop} className="drop-target">

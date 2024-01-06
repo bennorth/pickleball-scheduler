@@ -67,6 +67,20 @@ export class AppDexieStorage extends Dexie {
     await this._poolMembers.delete(personId);
   }
 
+  async setScheduleNCourts(nCourts: number) {
+    if (Math.floor(nCourts) !== nCourts || nCourts < 1)
+      throw new Error("bad nCourts");
+    let params = await this.scheduleParamsRecord_();
+    params.nCourts = nCourts;
+    await this._scheduleParams.put(params);
+  }
+
+  async setScheduleDisplayTitle(displayTitle: string) {
+    let params = await this.scheduleParamsRecord_();
+    params.displayTitle = displayTitle;
+    await this._scheduleParams.put(params);
+  }
+
   async scheduleParamsRecord_(): Promise<ScheduleParamsRecord> {
     const paramSets = await this._scheduleParams.toArray();
     const nSets = paramSets.length;

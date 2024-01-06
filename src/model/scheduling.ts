@@ -205,13 +205,13 @@ function scheduleStats(schedule: Schedule) {
   return { nSlots, nCourts, nPlaying, nSittingOut, nPersons };
 }
 
-type SittingOutFairnessViolation = {
+export type SittingOutFairnessViolation = {
   kind: "sitting-out-fairness";
   personId: PersonId;
   subKind: "too-few" | "too-many";
 };
 
-function sittingOutFairnessViolations(schedule: Schedule) {
+export function sittingOutFairnessViolations(schedule: Schedule) {
   const stats = scheduleStats(schedule);
   const nSlotsFairlySittingOut =
     (stats.nSittingOut * stats.nSlots) / stats.nPersons;
@@ -242,15 +242,40 @@ function sittingOutFairnessViolations(schedule: Schedule) {
         subKind: "too-many",
       });
   }
-
   return violations;
 }
 
-export type RuleViolation = SittingOutFairnessViolation;
+export type NoDuplicatePairsViolation = {
+  kind: "no-duplicate-pairs";
+  pairKey: string;
+};
 
-export function scheduleRuleViolations(
+export function pairKeyFromIds(pair: Pair) {
+  let pairCanonical = pair.slice();
+  pairCanonical.sort((a, b) => a - b);
+  return pairCanonical.join("-");
+}
+
+export function noDuplicatePairsViolations(
   schedule: Schedule
-): Array<RuleViolation> {
-  const sittingOutFairness = sittingOutFairnessViolations(schedule);
-  return sittingOutFairness;
+): Array<NoDuplicatePairsViolation> {
+  let nTimesPaired = new Map<string, number>();
+
+  for (const slot of schedule.timeSlots) {
+    for (const court of slot.courtAllocations) {
+      for (const pair of court) {
+        const pairKey = pairKeyFromIds(pair);
+        const nTimes = nTimesPaired.get(pairKey) ?? 0;
+        nTimesPaired.set(pairKey, nTimes + 1);
+      }
+    }
+  }
+
+  let violations: Array<NoDuplicatePairsViolation> = [];
+  for (const [pairKey, nTimes] of nTimesPaired.entries()) {
+    if (nTimes > 1) {
+      violations.push({ kind: "no-duplicate-pairs", pairKey });
+    }
+  }
+  return violations;
 }

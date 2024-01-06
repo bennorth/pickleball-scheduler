@@ -46,6 +46,7 @@ type EnsureNotInSquadArgs = { personId: number };
 type AddScheduleSlotArgs = { name: string };
 type EditScheduleSlotNameArgs = { iSlot: number; newName: string };
 type DeleteScheduleSlotArgs = { iSlot: number };
+type SetScheduleNCourtsArgs = { nCourts: number };
 
 type SwapPairsInSlotArgs = {
   iSlot: number;
@@ -82,6 +83,7 @@ export type AppState = {
   addScheduleSlot: Thunk<AppState, AddScheduleSlotArgs>;
   editScheduleSlotName: Thunk<AppState, EditScheduleSlotNameArgs>;
   deleteScheduleSlot: Thunk<AppState, DeleteScheduleSlotArgs>;
+  setScheduleNCourts: Thunk<AppState, SetScheduleNCourtsArgs>;
 
   schedule: Schedule | undefined;
   setSchedule: Action<AppState, Schedule | undefined>;
@@ -153,6 +155,10 @@ export let appState: AppState = {
   }),
   deleteScheduleSlot: thunk(async (a, { iSlot }) => {
     await dexieDb.deleteScheduleSlot(iSlot);
+    a.setScheduleParamsState(loadedFromDbStaleState);
+  }),
+  setScheduleNCourts: thunk(async (a, { nCourts }) => {
+    await dexieDb.setScheduleNCourts(nCourts);
     a.setScheduleParamsState(loadedFromDbStaleState);
   }),
 

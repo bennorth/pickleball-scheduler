@@ -1,15 +1,22 @@
 import { createContext, useContext } from "react";
 import { PersonId, PoolMember } from "../../model/player-pool";
 import {
-  RuleViolation,
+  NoDuplicatePairsViolation,
   Schedule,
-  scheduleRuleViolations,
+  SittingOutFairnessViolation,
+  noDuplicatePairsViolations,
+  sittingOutFairnessViolations,
 } from "../../model/scheduling";
 
 type RenderScheduleContextT = {
   personFromId(personId: PersonId): PoolMember;
   schedule: Schedule;
-  ruleViolationsFromId(personId: PersonId): Array<RuleViolation>;
+  sittingOutFairnessViolationsFromId(
+    personId: PersonId
+  ): Array<SittingOutFairnessViolation>;
+  noDuplicatePairsViolationsFromPairKey(
+    pairKey: string
+  ): Array<NoDuplicatePairsViolation>;
 };
 
 export let RenderScheduleContext = createContext<
@@ -31,29 +38,40 @@ export function makeRenderScheduleContext(
   schedule: Schedule
 ): RenderScheduleContextT {
   const personFromId = makePersonLutFun(pool);
-  const ruleViolations = scheduleRuleViolations(schedule);
 
-  console.log("VIOLATIONS", ruleViolations);
-
-  let violationsfromIdLut = new Map<PersonId, Array<RuleViolation>>();
-  for (const violation of ruleViolations) {
+  let sittingOutLut = new Map<PersonId, Array<SittingOutFairnessViolation>>();
+  for (const violation of sittingOutFairnessViolations(schedule)) {
     const personId = violation.personId;
-    let mViolations = violationsfromIdLut.get(personId);
+    let mViolations = sittingOutLut.get(personId);
     if (mViolations == null) {
-      violationsfromIdLut.set(personId, [violation]);
+      sittingOutLut.set(personId, [violation]);
     } else {
       mViolations.push(violation);
     }
   }
+  const sittingOutFairnessViolationsFromId = (personId: PersonId) =>
+    sittingOutLut.get(personId) ?? [];
 
-  console.log("CTX:", violationsfromIdLut);
+  let noDupPairsLut = new Map<string, Array<NoDuplicatePairsViolation>>();
+  for (const violation of noDuplicatePairsViolations(schedule)) {
+    const pairKey = violation.pairKey;
+    let mViolations = noDupPairsLut.get(pairKey);
 
-  function ruleViolationsFromId(personId: PersonId) {
-    console.log("find v", personId);
-    return violationsfromIdLut.get(personId) ?? [];
+    if (mViolations == null) {
+      noDupPairsLut.set(pairKey, [violation]);
+    } else {
+      mViolations.push(violation);
+    }
   }
+  const noDuplicatePairsViolationsFromId = (pairKey: string) =>
+    noDupPairsLut.get(pairKey) ?? [];
 
-  return { personFromId, schedule, ruleViolationsFromId };
+  return {
+    personFromId,
+    schedule,
+    sittingOutFairnessViolationsFromId,
+    noDuplicatePairsViolationsFromPairKey: noDuplicatePairsViolationsFromId,
+  };
 }
 
 export function useRenderScheduleContext() {
