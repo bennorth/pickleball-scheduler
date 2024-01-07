@@ -223,8 +223,6 @@ export function randomSchedule(
   Sort order for squad selection (name asc/desc and also is-selected
   asc/desc)
 
-  Fair sitting out --- but allow manual construction where unfair.
-
   Show somehow where someone is not sitting out at all.  Will of course
   need to be in a separate place from "sitting out" column in schedule.
 
@@ -233,6 +231,8 @@ export function randomSchedule(
   -----------------------------------------------------------------------------
 
   Done:
+
+  Fair sitting out --- but allow manual construction where unfair.
 
   Highlight unfair sittings-out and dup pairings.  (MOSTLY done: See above.)
 
@@ -248,7 +248,6 @@ export function randomSchedule(
   const nCourts = params.nCourts;
   const nTimeSlots = params.slotNames.length;
   const nPlayersPerSlot = nPlayersPerCourt * nCourts;
-  const nPairsPerSlot = nPairsPerCourt * nCourts;
   const nBench = squad.length - nPlayersPerSlot;
 
   if (nBench < 0)
@@ -265,25 +264,45 @@ export function randomSchedule(
   for (let iTimeSlot = 0; iTimeSlot !== nTimeSlots; ++iTimeSlot) {
     const bench = benchGenerator.next().value;
     const players = setDifference(new Set(squad), bench);
-    let pairs: Array<Pair> = [];
-    for (let iPair = 0; iPair !== nPairsPerSlot; ++iPair) {
-      const player1 = randomMaximalPerson(nTimesFromPerson, players);
-      players.delete(player1);
-      const player2 = randomMinimalPartner(nTimesFromPair, player1, players);
-      players.delete(player2);
-      const pair = [player1, player2] as Pair;
-      pairs.push(pair);
-      const pairKey = pairKeyFromIds(pair);
-      nTimesFromPair.set(pairKey, nTimesFromPair.get(pairKey)! + 1);
-    }
-    let courtAllocations: Array<CourtAllocation> = [];
-    for (let iCourt = 0; iCourt !== nCourts; ++iCourt) {
-      courtAllocations.push(pairs.splice(0, 2) as [Pair, Pair]);
-    }
+    let courtAllocations = randomTimeSlotCourts(
+      players,
+      nTimesFromPerson,
+      nTimesFromPair
+    );
     timeSlots.push({ courtAllocations, bench: Array.from(bench) });
   }
 
   return { nCourts, timeSlots };
+}
+
+function randomTimeSlotCourts(
+  players: Set<number>,
+  nTimesFromPerson: Map<number, number>,
+  nTimesFromPair: Map<string, number>
+) {
+  const nCourts = players.size / nPlayersPerCourt;
+  if (nCourts !== Math.floor(nCourts))
+    throw new Error(
+      "inconsistent nPlayers ${players.size} and nCourts ${nCourts}"
+    );
+
+  const nPairsPerSlot = nPairsPerCourt * nCourts;
+  let pairs: Array<Pair> = [];
+  for (let iPair = 0; iPair !== nPairsPerSlot; ++iPair) {
+    const player1 = randomMaximalPerson(nTimesFromPerson, players);
+    players.delete(player1);
+    const player2 = randomMinimalPartner(nTimesFromPair, player1, players);
+    players.delete(player2);
+    const pair = [player1, player2] as Pair;
+    pairs.push(pair);
+    const pairKey = pairKeyFromIds(pair);
+    nTimesFromPair.set(pairKey, nTimesFromPair.get(pairKey)! + 1);
+  }
+  let courtAllocations: Array<CourtAllocation> = [];
+  for (let iCourt = 0; iCourt !== nCourts; ++iCourt) {
+    courtAllocations.push(pairs.splice(0, 2) as [Pair, Pair]);
+  }
+  return courtAllocations;
 }
 
 function pathOfPerson(
@@ -312,6 +331,43 @@ function pathOfPerson(
   }
 
   throw new Error(`could not find person ${targetPersonId}`);
+}
+
+export function withSlotRetried(
+  schedule: Schedule,
+  iRetrySlot: number
+): Schedule {
+  const squad = squadOfSchedule(schedule);
+  let nTimesFromPair = zeroNTimesFromPair(squad);
+  let nTimesFromPerson = zeroNTimesFromPerson(squad);
+  for (let iSlot = 0; iSlot !== schedule.timeSlots.length; ++iSlot) {
+    if (iSlot === iRetrySlot) {
+      continue;
+    }
+    for (const court of schedule.timeSlots[iSlot].courtAllocations) {
+      for (const pair of court) {
+        const pairKey = pairKeyFromIds(pair);
+        nTimesFromPair.set(pairKey, nTimesFromPair.get(pairKey)! + 1);
+        for (const person of pair) {
+          nTimesFromPerson.set(person, nTimesFromPerson.get(person)! + 1);
+        }
+      }
+    }
+  }
+
+  const slotToRetry = schedule.timeSlots[iRetrySlot];
+  const players = setDifference(new Set(squad), new Set(slotToRetry.bench));
+  const courtAllocations = randomTimeSlotCourts(
+    players,
+    nTimesFromPerson,
+    nTimesFromPair
+  );
+  const newSlot: TimeSlotAllocation = { ...slotToRetry, courtAllocations };
+
+  let newSlots = schedule.timeSlots.slice();
+  newSlots[iRetrySlot] = newSlot;
+
+  return { ...schedule, timeSlots: newSlots };
 }
 
 export function withPairsSwapped(

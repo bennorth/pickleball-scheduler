@@ -17,6 +17,7 @@ import { useLoadedValue } from "../hooks";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import classNames from "classnames";
+import { Button } from "react-bootstrap";
 
 // TODO: Rename because these also apply when dragging a person.
 type PairDragItem = { iSlot: number; personId: PersonId };
@@ -167,9 +168,19 @@ type TimeSlotViewProps = {
   slot: TimeSlotAllocation;
 };
 export function TimeSlotView({ iSlot, name, slot }: TimeSlotViewProps) {
+  const ctx = useRenderScheduleContext();
   return (
     <tr className="TimeSlotView">
-      <th>{name}</th>
+      <th>
+        {name}
+        <Button
+          onClick={() => {
+            ctx.retrySlot({ iSlot });
+          }}
+        >
+          retry
+        </Button>
+      </th>
       {slot.courtAllocations.map((court, idx) => (
         <CourtView iSlot={iSlot} key={idx} court={court} />
       ))}
@@ -200,6 +211,7 @@ export function BareSchedule() {
   const pool = useLoadedValue((s) => s.poolState);
   const schedule = useStoreState((s) => s.schedule);
   const scheduleParams = useLoadedValue((s) => s.scheduleParamsState);
+  const retrySlot = useStoreActions((a) => a.retrySlot);
 
   if (schedule == null) {
     return <div>Error no schedule</div>;
@@ -208,7 +220,7 @@ export function BareSchedule() {
   const displayTitle = scheduleParams.displayTitle;
   const slotNames = scheduleParams.slotNames;
 
-  const context = makeRenderScheduleContext(pool, schedule);
+  const context = makeRenderScheduleContext(pool, schedule, retrySlot);
 
   const header = (
     <tr>

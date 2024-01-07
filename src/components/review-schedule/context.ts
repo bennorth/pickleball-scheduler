@@ -7,10 +7,12 @@ import {
   noDuplicatePairsViolations,
   sittingOutFairnessViolations,
 } from "../../model/scheduling";
+import { RetrySlotArgs } from "../../model/app";
 
 type RenderScheduleContextT = {
   personFromId(personId: PersonId): PoolMember;
   schedule: Schedule;
+  retrySlot({ iSlot }: RetrySlotArgs): void;
   sittingOutFairnessViolationsFromId(
     personId: PersonId
   ): Array<SittingOutFairnessViolation>;
@@ -35,7 +37,8 @@ function makePersonLutFun(pool: Array<PoolMember>) {
 
 export function makeRenderScheduleContext(
   pool: Array<PoolMember>,
-  schedule: Schedule
+  schedule: Schedule,
+  retrySlot: ({ iSlot }: RetrySlotArgs) => void
 ): RenderScheduleContextT {
   const personFromId = makePersonLutFun(pool);
 
@@ -69,6 +72,7 @@ export function makeRenderScheduleContext(
   return {
     personFromId,
     schedule,
+    retrySlot,
     sittingOutFairnessViolationsFromId,
     noDuplicatePairsViolationsFromPairKey: noDuplicatePairsViolationsFromId,
   };

@@ -7,6 +7,7 @@ import {
   randomSchedule,
   withPairsSwapped,
   withPersonsSwapped,
+  withSlotRetried,
 } from "./scheduling";
 
 import { ModalUiState, modalUiState } from "./modal-ui";
@@ -54,6 +55,8 @@ type SwapPairsInSlotArgs = {
   personId1: PersonId;
 };
 
+export type RetrySlotArgs = { iSlot: number };
+
 const loadedFromDbStaleState = { kind: "stale" as const };
 
 export type PageKind =
@@ -92,6 +95,7 @@ export type AppState = {
   generateSchedule: Thunk<AppState, void>;
   swapPairsInSlot: Action<AppState, SwapPairsInSlotArgs>;
   swapPersonsInSlot: Action<AppState, SwapPairsInSlotArgs>;
+  retrySlot: Action<AppState, RetrySlotArgs>;
 
   modalUiState: ModalUiState;
 };
@@ -205,6 +209,10 @@ export let appState: AppState = {
       personId0,
       personId1
     );
+  }),
+
+  retrySlot: action((s, { iSlot }) => {
+    s.schedule = withSlotRetried(definedSchedule(s), iSlot);
   }),
 
   modalUiState,
