@@ -174,6 +174,7 @@ export function TimeSlotView({ iSlot, name, slot }: TimeSlotViewProps) {
       <th>
         {name}
         <Button
+          className="non-print"
           onClick={() => {
             ctx.retrySlot({ iSlot });
           }}

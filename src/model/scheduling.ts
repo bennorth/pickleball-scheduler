@@ -546,5 +546,6 @@ export function noDuplicatePairsViolations(
       violations.push({ kind: "no-duplicate-pairs", pairKey });
     }
   }
+
   return violations;
 }

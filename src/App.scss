@@ -236,5 +236,16 @@ table.ScheduleView {
   }
   table.ScheduleView {
     width: 100%;
+
+    .PairView > * {
+      padding: 0px;
+    }
+    .PersonView {
+      padding: 0px;
+    }
+    .pair-separator {
+      padding: 2px;
+      margin-bottom: 4px;
+    }
   }
 }
