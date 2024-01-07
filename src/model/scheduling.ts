@@ -33,7 +33,9 @@ function shuffled<T>(xs: Iterable<T>) {
   return shuffledXs;
 }
 
-const nPlayersPerCourt = 4;
+const nPairsPerCourt = 2;
+const nPlayersPerPair = 2;
+const nPlayersPerCourt = nPairsPerCourt * nPlayersPerPair;
 
 type PlayingPersonPath = {
   kind: "playing";
@@ -53,58 +55,206 @@ type PersonPath = PlayingPersonPath | BenchPersonPath;
 
 export type PersonRole = "playing" | "sitting-out";
 
+function setDifference<T>(a: Set<T>, b: Set<T>) {
+  let result = new Set<T>();
+  for (const x of a) {
+    if (!b.has(x)) result.add(x);
+  }
+  return result;
+}
+
+function setUnion<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
+  let result = new Set<T>(a);
+  for (const x of b) {
+    result.add(x);
+  }
+  return result;
+}
+
+function setSoleElement<T>(a: Set<T>): T {
+  if (a.size !== 1) throw new Error("expected exactly one element in set");
+  for (const x of a) {
+    return x;
+  }
+}
+
+function sampleWithoutInPlace<T>(
+  xs: Set<T>,
+  n: number,
+  forbidden: Set<T>
+): Set<T> {
+  const allowed = setDifference(xs, forbidden);
+  if (allowed.size < n)
+    throw new Error(
+      `cannot make sample of size ${n}` +
+        ` because only ${allowed.size} elements allowed`
+    );
+
+  // Not super-efficient but will do for now:
+  const shuffledAllowed = shuffled(allowed);
+  const result = new Set(shuffledAllowed.slice(0, n));
+  for (const x of result) {
+    xs.delete(x);
+  }
+  return result;
+}
+
+export class BenchGenerator implements Iterator<Set<PersonId>> {
+  squad: Set<PersonId>;
+  nBench: number;
+  prevBench: Set<PersonId>;
+  benchQueue: Array<PersonId>;
+
+  constructor(nBench: number, squad: Array<PersonId>) {
+    this.nBench = nBench;
+    this.squad = new Set<PersonId>(squad);
+    this.prevBench = new Set<PersonId>();
+    this.benchQueue = [];
+  }
+
+  next() {
+    const nMissing = this.nBench - this.benchQueue.length;
+    if (nMissing > 0) {
+      let replenishPool = new Set(this.squad);
+
+      let forbiddenInitial = setUnion(this.benchQueue, this.prevBench);
+      const queueReplenishInitial = sampleWithoutInPlace(
+        replenishPool,
+        nMissing,
+        forbiddenInitial
+      );
+      this.benchQueue.push(...queueReplenishInitial);
+
+      const forbiddenNext = new Set(this.benchQueue);
+      const queueReplenishNext = sampleWithoutInPlace(
+        replenishPool,
+        this.nBench,
+        forbiddenNext
+      );
+      this.benchQueue.push(...queueReplenishNext);
+
+      this.benchQueue.push(...shuffled(replenishPool));
+    }
+
+    const bench = this.benchQueue.splice(0, this.nBench);
+    this.prevBench = new Set(bench);
+
+    return { done: false, value: new Set(bench) };
+  }
+}
+
+function randomMinimalPartner(
+  nTimesFromPair: Map<string, number>,
+  playerId: PersonId,
+  candidatePartners: Iterable<PersonId>
+): PersonId {
+  let minNTimes = Infinity;
+  let chosenPartnerId: PersonId | undefined = undefined;
+  for (const candidate of candidatePartners) {
+    const pairKey = pairKeyFromIds([playerId, candidate]);
+    const nTimes = nTimesFromPair.get(pairKey)!;
+    let nMinimalCandidates = 0;
+    if (nTimes < minNTimes) {
+      minNTimes = nTimes;
+      nMinimalCandidates = 0;
+    }
+    if (nTimes == minNTimes) {
+      nMinimalCandidates += 1;
+      if (Math.random() * nMinimalCandidates < 1) {
+        chosenPartnerId = candidate;
+      }
+    }
+  }
+
+  if (chosenPartnerId == null) {
+    throw new Error("could not find partner");
+  }
+
+  return chosenPartnerId;
+}
+
+function zeroNTimesFromPair(squad: Array<PersonId>): Map<string, number> {
+  let nTimes = new Map<string, number>();
+  for (let i1 = 0; i1 < squad.length; ++i1) {
+    const id1 = squad[i1];
+    for (let i2 = i1 + 1; i2 < squad.length; ++i2) {
+      const id2 = squad[i2];
+      const pairKey = pairKeyFromIds([id1, id2]);
+      nTimes.set(pairKey, 0);
+    }
+  }
+  return nTimes;
+}
+
 export function randomSchedule(
   squad: Array<PersonId>,
   params: ScheduleParams
 ): Schedule {
-  const nCourts = params.nCourts;
-  const nPlayersPerSlot = nPlayersPerCourt * nCourts;
-  if (squad.length < nPlayersPerSlot)
-    throw new Error(
-      `cannot form schedule with ${squad.length} people` +
-        ` for ${params.nCourts} courts`
-    );
-
   // TODO: What is a good set of criteria for creating a "good" schedule?
 
   /*
 
-  Sort order for squad selection (name asc/desc and also is-selected asc/desc)
+  Sort order for squad selection (name asc/desc and also is-selected
+  asc/desc)
 
   Fair sitting out --- but allow manual construction where unfair.
 
-  Avoid duplicate pairings --- but allow manual construction of them.
+  Show somehow where someone is not sitting out at all.  Will of course
+  need to be in a separate place from "sitting out" column in schedule.
 
-  Highlight unfair sittings-out and dup pairings.
+  Avoid duplicate pairings --- but allow manual construction of them.
 
   -----------------------------------------------------------------------------
 
   Done:
 
+  Highlight unfair sittings-out and dup pairings.  (MOSTLY done: See above.)
+
   Swap pairs within timeslot.
 
   Swap persons within timeslot including with sitting-out people.
 
-  Timeslots are free text labels.  UI can be to right of squad selection list.
+  Timeslots are free text labels.  UI can be to right of squad selection
+  list.
 
   */
 
-  const nPersonsOnBench = squad.length - nPlayersPerSlot;
-
+  const nCourts = params.nCourts;
   const nTimeSlots = params.slotNames.length;
-  let timeSlots: Array<TimeSlotAllocation> = [];
-  for (let iTimeSlot = 0; iTimeSlot !== nTimeSlots; iTimeSlot += 1) {
-    const shuffledSquad = shuffled(squad);
-    const shuffledPersons = shuffledSquad[Symbol.iterator]();
-    let courtAllocations: Array<CourtAllocation> = [];
-    for (let iCourt = 0; iCourt !== params.nCourts; iCourt += 1) {
-      const pair1 = takeFirstN(shuffledPersons, 2) as Pair;
-      const pair2 = takeFirstN(shuffledPersons, 2) as Pair;
-      courtAllocations.push([pair1, pair2]);
-    }
+  const nPlayersPerSlot = nPlayersPerCourt * nCourts;
+  const nPairsPerSlot = nPairsPerCourt * nCourts;
+  const nBench = squad.length - nPlayersPerSlot;
 
-    const bench = takeFirstN(shuffledPersons, nPersonsOnBench);
-    timeSlots.push({ courtAllocations, bench });
+  if (nBench < 0)
+    throw new Error(
+      `cannot form schedule with ${squad.length} people` +
+        ` for ${params.nCourts} courts`
+    );
+
+  let benchGenerator = new BenchGenerator(nBench, squad);
+  let nTimesFromPair = zeroNTimesFromPair(squad);
+
+  let timeSlots: Array<TimeSlotAllocation> = [];
+  const emptyPlayerSet = new Set<PersonId>();
+  for (let iTimeSlot = 0; iTimeSlot !== nTimeSlots; ++iTimeSlot) {
+    const bench = benchGenerator.next().value;
+    const players = setDifference(new Set(squad), bench);
+    let pairs: Array<Pair> = [];
+    for (let iPair = 0; iPair !== nPairsPerSlot; ++iPair) {
+      const player1s = sampleWithoutInPlace(players, 1, emptyPlayerSet);
+      const player1 = setSoleElement(player1s);
+      const player2 = randomMinimalPartner(nTimesFromPair, player1, players);
+      players.delete(player2);
+      const pair = [player1, player2] as Pair;
+      pairs.push(pair);
+      const pairKey = pairKeyFromIds(pair);
+      nTimesFromPair.set(pairKey, nTimesFromPair.get(pairKey)! + 1);
+    }
+    let courtAllocations: Array<CourtAllocation> = [];
+    for (let iCourt = 0; iCourt !== nCourts; ++iCourt) {
+      courtAllocations.push(pairs.splice(0, 2) as [Pair, Pair]);
+    }
+    timeSlots.push({ courtAllocations, bench: Array.from(bench) });
   }
 
   return { nCourts, timeSlots };
@@ -195,6 +345,36 @@ export function withPersonsSwapped(
   return newSchedule;
 }
 
+function squadOfSlot(slot: TimeSlotAllocation): Array<PersonId> {
+  let squad: Array<PersonId> = [];
+  for (const court of slot.courtAllocations) {
+    squad.push(court[0][0], court[0][1], court[1][0], court[1][1]);
+  }
+  squad.push(...slot.bench);
+  squad.sort((a, b) => a - b);
+  return squad;
+}
+
+function sortedSquadsEqual(
+  squad1: Array<PersonId>,
+  squad2: Array<PersonId>
+): boolean {
+  if (squad1.length !== squad2.length) return false;
+  for (let i = 0; i !== squad1.length; ++i)
+    if (squad1[i] !== squad2[i]) return false;
+  return true;
+}
+
+function squadOfSchedule(schedule: Schedule): Array<PersonId> {
+  const squad = squadOfSlot(schedule.timeSlots[0]);
+  for (const slot of schedule.timeSlots.slice(1)) {
+    const checkSquad = squadOfSlot(slot);
+    if (!sortedSquadsEqual(checkSquad, squad))
+      throw new Error("inconsistent squads in schedule");
+  }
+  return squad;
+}
+
 function scheduleStats(schedule: Schedule) {
   const nSlots = schedule.timeSlots.length;
   const slot = schedule.timeSlots[0];
@@ -212,6 +392,8 @@ export type SittingOutFairnessViolation = {
 };
 
 export function sittingOutFairnessViolations(schedule: Schedule) {
+  const squad = squadOfSchedule(schedule);
+
   const stats = scheduleStats(schedule);
   const nSlotsFairlySittingOut =
     (stats.nSittingOut * stats.nSlots) / stats.nPersons;
@@ -219,10 +401,15 @@ export function sittingOutFairnessViolations(schedule: Schedule) {
   const minNSlots = Math.floor(nSlotsFairlySittingOut);
   const maxNSlots = Math.ceil(nSlotsFairlySittingOut);
 
-  let nSlotsSittingOut = new Map<PersonId, number>();
+  let nSlotsSittingOut = new Map<PersonId, number>(
+    squad.map((personId) => [personId, 0])
+  );
   for (const slot of schedule.timeSlots) {
     for (const personId of slot.bench) {
-      const nTimes = nSlotsSittingOut.get(personId) ?? 0;
+      const nTimes = nSlotsSittingOut.get(personId);
+      if (nTimes == null) {
+        throw new Error("person from bench not found in squad");
+      }
       nSlotsSittingOut.set(personId, nTimes + 1);
     }
   }
@@ -253,7 +440,7 @@ export type NoDuplicatePairsViolation = {
 export function pairKeyFromIds(pair: Pair) {
   let pairCanonical = pair.slice();
   pairCanonical.sort((a, b) => a - b);
-  return pairCanonical.join("-");
+  return pairCanonical.join("+");
 }
 
 export function noDuplicatePairsViolations(
