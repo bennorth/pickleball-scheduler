@@ -1,6 +1,5 @@
 import { ScheduleParams } from "./app";
 import { PersonId } from "./player-pool";
-import { takeFirstN } from "../utils";
 import { deepClone } from "../deep-clone";
 
 export type Pair = [PersonId, PersonId];
@@ -71,13 +70,6 @@ function setUnion<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
   return result;
 }
 
-function setSoleElement<T>(a: Set<T>): T {
-  if (a.size !== 1) throw new Error("expected exactly one element in set");
-  for (const x of a) {
-    return x;
-  }
-}
-
 function sampleWithoutInPlace<T>(
   xs: Set<T>,
   n: number,
@@ -143,6 +135,32 @@ export class BenchGenerator implements Iterator<Set<PersonId>> {
   }
 }
 
+function randomMaximalPerson(
+  nTimesFromPerson: Map<PersonId, number>,
+  candidatePlayers: Iterable<PersonId>
+) {
+  let maxNTimes = -1;
+  let chosenPersonId: PersonId | undefined = undefined;
+  let nMinimalCandidates = 0;
+  for (const candidate of candidatePlayers) {
+    const nTimes = nTimesFromPerson.get(candidate)!;
+    if (nTimes > maxNTimes) {
+      maxNTimes = nTimes;
+      nMinimalCandidates = 0;
+    }
+    if (nTimes == maxNTimes) {
+      nMinimalCandidates += 1;
+      if (Math.random() * nMinimalCandidates < 1) {
+        chosenPersonId = candidate;
+      }
+    }
+  }
+  if (chosenPersonId == null) {
+    throw new Error("could not find person");
+  }
+  return chosenPersonId;
+}
+
 function randomMinimalPartner(
   nTimesFromPair: Map<string, number>,
   playerId: PersonId,
@@ -150,10 +168,10 @@ function randomMinimalPartner(
 ): PersonId {
   let minNTimes = Infinity;
   let chosenPartnerId: PersonId | undefined = undefined;
+  let nMinimalCandidates = 0;
   for (const candidate of candidatePartners) {
     const pairKey = pairKeyFromIds([playerId, candidate]);
     const nTimes = nTimesFromPair.get(pairKey)!;
-    let nMinimalCandidates = 0;
     if (nTimes < minNTimes) {
       minNTimes = nTimes;
       nMinimalCandidates = 0;
@@ -171,6 +189,14 @@ function randomMinimalPartner(
   }
 
   return chosenPartnerId;
+}
+
+function zeroNTimesFromPerson(squad: Array<PersonId>): Map<PersonId, number> {
+  let nTimes = new Map<PersonId, number>();
+  for (const personId of squad) {
+    nTimes.set(personId, 0);
+  }
+  return nTimes;
 }
 
 function zeroNTimesFromPair(squad: Array<PersonId>): Map<string, number> {
@@ -232,17 +258,17 @@ export function randomSchedule(
     );
 
   let benchGenerator = new BenchGenerator(nBench, squad);
+  let nTimesFromPerson = zeroNTimesFromPerson(squad);
   let nTimesFromPair = zeroNTimesFromPair(squad);
 
   let timeSlots: Array<TimeSlotAllocation> = [];
-  const emptyPlayerSet = new Set<PersonId>();
   for (let iTimeSlot = 0; iTimeSlot !== nTimeSlots; ++iTimeSlot) {
     const bench = benchGenerator.next().value;
     const players = setDifference(new Set(squad), bench);
     let pairs: Array<Pair> = [];
     for (let iPair = 0; iPair !== nPairsPerSlot; ++iPair) {
-      const player1s = sampleWithoutInPlace(players, 1, emptyPlayerSet);
-      const player1 = setSoleElement(player1s);
+      const player1 = randomMaximalPerson(nTimesFromPerson, players);
+      players.delete(player1);
       const player2 = randomMinimalPartner(nTimesFromPair, player1, players);
       players.delete(player2);
       const pair = [player1, player2] as Pair;
