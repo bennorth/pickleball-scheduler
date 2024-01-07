@@ -4,6 +4,7 @@ import { propSetterAction } from "../utils";
 import { PersonId, PoolMember } from "./player-pool";
 import {
   Schedule,
+  SlotRetryIterator,
   randomSchedule,
   withPairsSwapped,
   withPersonsSwapped,
@@ -96,6 +97,8 @@ export type AppState = {
   swapPairsInSlot: Action<AppState, SwapPairsInSlotArgs>;
   swapPersonsInSlot: Action<AppState, SwapPairsInSlotArgs>;
   retrySlot: Action<AppState, RetrySlotArgs>;
+  retryIterator: SlotRetryIterator | undefined;
+  retryNext: Action<AppState, void>;
 
   modalUiState: ModalUiState;
 };
@@ -167,7 +170,11 @@ export let appState: AppState = {
   }),
 
   schedule: undefined,
-  setSchedule: propSetterAction("schedule"),
+  setSchedule: action((s, schedule) => {
+    s.schedule = schedule;
+    s.retryIterator =
+      schedule == null ? schedule : new SlotRetryIterator(schedule);
+  }),
 
   refreshFromDb: thunk(async (a, _voidPayload, helpers) => {
     const poolStateKind = helpers.getState().poolState.kind;
@@ -213,6 +220,17 @@ export let appState: AppState = {
 
   retrySlot: action((s, { iSlot }) => {
     s.schedule = withSlotRetried(definedSchedule(s), iSlot);
+  }),
+  retryIterator: undefined,
+  retryNext: action((s) => {
+    if (s.retryIterator == null) {
+      throw new Error("expecting retryIterator to be defined");
+    }
+    const newSchedule = s.retryIterator.next().value;
+    if (newSchedule == null) {
+      throw new Error("expecting retryIterator result to be defined");
+    }
+    s.schedule = newSchedule;
   }),
 
   modalUiState,

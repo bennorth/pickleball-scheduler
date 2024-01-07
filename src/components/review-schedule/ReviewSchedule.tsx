@@ -4,9 +4,11 @@ import { BareSchedule } from "./BareSchedule";
 
 export function ReviewSchedule() {
   const generateSchedule = useStoreActions((a) => a.generateSchedule);
+  const retryNext = useStoreActions((a) => a.retryNext);
   const setPage = useStoreActions((a) => a.setPage);
 
   const doGenerate = () => generateSchedule();
+  const doRetrySlot = () => retryNext();
   const switchToPrintLayout = () => setPage("schedule-print-layout");
 
   return (
@@ -15,6 +17,7 @@ export function ReviewSchedule() {
       <BareSchedule />
       <div className="button-strip">
         <Button onClick={doGenerate}>Regenerate</Button>
+        <Button onClick={doRetrySlot}>RETRY SLOT</Button>
         <Button onClick={switchToPrintLayout}>Print layout</Button>
       </div>
     </div>

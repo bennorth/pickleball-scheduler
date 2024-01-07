@@ -467,6 +467,26 @@ function scheduleStats(schedule: Schedule) {
   return { nSlots, nCourts, nPlaying, nSittingOut, nPersons };
 }
 
+function setIntersectionNonEmpty<T>(a: Set<T>, b: Set<T>) {
+  for (const x of a) {
+    if (b.has(x)) return true;
+  }
+  return false;
+}
+
+function scheduleSlotIncludesAnyPair(
+  slot: TimeSlotAllocation,
+  pairKeys: Set<string>
+) {
+  const slotPairKeys = new Set<string>();
+  for (const court of slot.courtAllocations) {
+    for (const pair of court) {
+      slotPairKeys.add(pairKeyFromIds(pair));
+    }
+  }
+  return setIntersectionNonEmpty(slotPairKeys, pairKeys);
+}
+
 export type SittingOutFairnessViolation = {
   kind: "sitting-out-fairness";
   personId: PersonId;
@@ -548,4 +568,43 @@ export function noDuplicatePairsViolations(
   }
 
   return violations;
+}
+
+export class SlotRetryIterator implements IterableIterator<Schedule> {
+  schedule: Schedule;
+  nSlots: number;
+  lastIdxRetrySlot: number;
+
+  constructor(schedule: Schedule) {
+    this.schedule = schedule;
+    this.nSlots = schedule.timeSlots.length;
+    this.lastIdxRetrySlot = schedule.timeSlots.length - 1;
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
+  next(): IteratorResult<Schedule, undefined> {
+    const violations = noDuplicatePairsViolations(this.schedule);
+    console.log("next():", violations);
+    if (violations.length !== 0) {
+      let iRetrySlot = this.lastIdxRetrySlot;
+      const violatingPairs = new Set(
+        violations.map((violation) => violation.pairKey)
+      );
+      while (true) {
+        iRetrySlot = (iRetrySlot + 1) % this.nSlots;
+        const slot = this.schedule.timeSlots[iRetrySlot];
+        console.log("considering", iRetrySlot);
+        if (scheduleSlotIncludesAnyPair(slot, violatingPairs)) {
+          console.log("retrying", iRetrySlot);
+          this.schedule = withSlotRetried(this.schedule, iRetrySlot);
+          this.lastIdxRetrySlot = iRetrySlot;
+          break;
+        }
+      }
+    }
+    return { done: false, value: this.schedule };
+  }
 }
