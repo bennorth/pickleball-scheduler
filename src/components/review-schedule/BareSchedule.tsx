@@ -17,7 +17,6 @@ import { useLoadedValue } from "../hooks";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import classNames from "classnames";
-import { Button } from "react-bootstrap";
 
 // TODO: Rename because these also apply when dragging a person.
 type PairDragItem = { iSlot: number; personId: PersonId };
@@ -37,6 +36,7 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
+      canDrag: ctx.isInteractable,
       type: "person",
       item: { iSlot, personId },
       collect: (monitor) => ({
@@ -102,6 +102,7 @@ function PairView({ iSlot, pair }: PairViewProps) {
 
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
+      canDrag: ctx.isInteractable,
       type: "pair",
       item: { iSlot, personId },
       collect: (monitor) => ({
@@ -168,20 +169,9 @@ type TimeSlotViewProps = {
   slot: TimeSlotAllocation;
 };
 export function TimeSlotView({ iSlot, name, slot }: TimeSlotViewProps) {
-  const ctx = useRenderScheduleContext();
   return (
     <tr className="TimeSlotView">
-      <th>
-        {name}
-        <Button
-          className="non-print"
-          onClick={() => {
-            ctx.retrySlot({ iSlot });
-          }}
-        >
-          retry
-        </Button>
-      </th>
+      <th>{name}</th>
       {slot.courtAllocations.map((court, idx) => (
         <CourtView iSlot={iSlot} key={idx} court={court} />
       ))}
@@ -213,6 +203,9 @@ export function BareSchedule() {
   const schedule = useStoreState((s) => s.schedule);
   const scheduleParams = useLoadedValue((s) => s.scheduleParamsState);
   const retrySlot = useStoreActions((a) => a.retrySlot);
+  const isInteractable = useStoreState(
+    (s) => s.generationState.kind === "idle"
+  );
 
   if (schedule == null) {
     return <div>Error no schedule</div>;
@@ -221,7 +214,12 @@ export function BareSchedule() {
   const displayTitle = scheduleParams.displayTitle;
   const slotNames = scheduleParams.slotNames;
 
-  const context = makeRenderScheduleContext(pool, schedule, retrySlot);
+  const context = makeRenderScheduleContext(
+    isInteractable,
+    pool,
+    schedule,
+    retrySlot
+  );
 
   const header = (
     <tr>

@@ -5,6 +5,7 @@ import { PersonId, PoolMember } from "./player-pool";
 import {
   Schedule,
   SlotRetryIterator,
+  noDuplicatePairsViolations,
   randomSchedule,
   withPairsSwapped,
   withPersonsSwapped,
@@ -12,6 +13,14 @@ import {
 } from "./scheduling";
 
 import { ModalUiState, modalUiState } from "./modal-ui";
+
+const nextSeqnum = (() => {
+  let nextSeqnum = 4001;
+  return () => nextSeqnum++;
+})();
+
+const delayMilliseconds = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export type ScheduleParams = {
   nCourts: number;
@@ -66,6 +75,10 @@ export type PageKind =
   | "review-schedule"
   | "schedule-print-layout";
 
+type GenerationState =
+  | { kind: "idle" }
+  | { kind: "running"; seqnum: number; retryIterator: SlotRetryIterator };
+
 export type AppState = {
   page: PageKind;
   setPage: Action<AppState, PageKind>;
@@ -90,15 +103,21 @@ export type AppState = {
   setScheduleNCourts: Thunk<AppState, SetScheduleNCourtsArgs>;
 
   schedule: Schedule | undefined;
-  setSchedule: Action<AppState, Schedule | undefined>;
+  setSchedule: Action<AppState, Schedule>;
+  updateSchedule: Action<AppState, Schedule>;
 
   refreshFromDb: Thunk<AppState, void>;
-  generateSchedule: Thunk<AppState, void>;
+
+  generationState: GenerationState;
+
+  generateFreshSchedule: Thunk<AppState, void>;
   swapPairsInSlot: Action<AppState, SwapPairsInSlotArgs>;
   swapPersonsInSlot: Action<AppState, SwapPairsInSlotArgs>;
   retrySlot: Action<AppState, RetrySlotArgs>;
-  retryIterator: SlotRetryIterator | undefined;
   retryNext: Action<AppState, void>;
+
+  cancelGeneration: Action<AppState, void>;
+  generateSchedule: Thunk<AppState, void>;
 
   modalUiState: ModalUiState;
 };
@@ -172,8 +191,14 @@ export let appState: AppState = {
   schedule: undefined,
   setSchedule: action((s, schedule) => {
     s.schedule = schedule;
-    s.retryIterator =
-      schedule == null ? schedule : new SlotRetryIterator(schedule);
+    s.generationState = {
+      kind: "running",
+      seqnum: nextSeqnum(),
+      retryIterator: new SlotRetryIterator(schedule),
+    };
+  }),
+  updateSchedule: action((s, schedule) => {
+    s.schedule = schedule;
   }),
 
   refreshFromDb: thunk(async (a, _voidPayload, helpers) => {
@@ -193,7 +218,9 @@ export let appState: AppState = {
     }
   }),
 
-  generateSchedule: thunk((a, _voidPayload, helpers) => {
+  generationState: { kind: "idle" },
+
+  generateFreshSchedule: thunk((a, _voidPayload, helpers) => {
     const params = loadedValue(helpers.getState().scheduleParamsState);
     const squad = Array.from(helpers.getState().squad);
     a.setSchedule(randomSchedule(squad, params));
@@ -221,16 +248,59 @@ export let appState: AppState = {
   retrySlot: action((s, { iSlot }) => {
     s.schedule = withSlotRetried(definedSchedule(s), iSlot);
   }),
-  retryIterator: undefined,
+
   retryNext: action((s) => {
-    if (s.retryIterator == null) {
-      throw new Error("expecting retryIterator to be defined");
+    if (s.generationState.kind !== "running") {
+      throw new Error("expecting generationState to be running");
     }
-    const newSchedule = s.retryIterator.next().value;
+    const newSchedule = s.generationState.retryIterator.next().value;
     if (newSchedule == null) {
       throw new Error("expecting retryIterator result to be defined");
     }
     s.schedule = newSchedule;
+  }),
+
+  cancelGeneration: action((s) => {
+    s.generationState = { kind: "idle" };
+  }),
+
+  generateSchedule: thunk(async (a, _voidPayload, helpers) => {
+    a.generateFreshSchedule();
+    const generationState = helpers.getState().generationState;
+    if (generationState.kind !== "running") {
+      throw new Error("expected to be running");
+    }
+    const initialSchedule = definedSchedule(helpers.getState());
+    let retryIterator = new SlotRetryIterator(initialSchedule);
+    const thisSeqnum = generationState.seqnum;
+    while (true) {
+      const state = helpers.getState();
+      if (state.page !== "review-schedule") {
+        a.cancelGeneration();
+        break;
+      }
+      const genState = state.generationState;
+      if (genState.kind !== "running") {
+        break;
+      }
+      if (genState.seqnum !== thisSeqnum) {
+        break;
+      }
+
+      const schedule = definedSchedule(state);
+      const valid = noDuplicatePairsViolations(schedule).length === 0;
+      if (valid) {
+        a.cancelGeneration();
+        break;
+      }
+
+      const newSchedule = retryIterator.next().value;
+      if (newSchedule == null) {
+        throw new Error("expecting retry-iterator to give result");
+      }
+      a.updateSchedule(newSchedule);
+      await delayMilliseconds(10);
+    }
   }),
 
   modalUiState,

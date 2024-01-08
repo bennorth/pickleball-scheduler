@@ -10,6 +10,7 @@ import {
 import { RetrySlotArgs } from "../../model/app";
 
 type RenderScheduleContextT = {
+  isInteractable: boolean;
   personFromId(personId: PersonId): PoolMember;
   schedule: Schedule;
   retrySlot({ iSlot }: RetrySlotArgs): void;
@@ -36,6 +37,7 @@ function makePersonLutFun(pool: Array<PoolMember>) {
 }
 
 export function makeRenderScheduleContext(
+  isInteractable: boolean,
   pool: Array<PoolMember>,
   schedule: Schedule,
   retrySlot: ({ iSlot }: RetrySlotArgs) => void
@@ -70,6 +72,7 @@ export function makeRenderScheduleContext(
     noDupPairsLut.get(pairKey) ?? [];
 
   return {
+    isInteractable,
     personFromId,
     schedule,
     retrySlot,

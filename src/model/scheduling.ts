@@ -370,6 +370,13 @@ export function withSlotRetried(
   return { ...schedule, timeSlots: newSlots };
 }
 
+function pairArrayAtPath(schedule: Schedule, path: PersonPath): Array<Pair> {
+  if (path.kind === "bench") {
+    throw new Error('cannot find pair array for a "bench" path');
+  }
+  return schedule.timeSlots[path.iSlot].courtAllocations[path.iCourt];
+}
+
 export function withPairsSwapped(
   schedule: Schedule,
   iSlot: number,
@@ -378,17 +385,18 @@ export function withPairsSwapped(
 ): Schedule {
   const path0 = pathOfPerson(schedule, iSlot, personId0);
   const path1 = pathOfPerson(schedule, iSlot, personId1);
+
   if (path0.kind !== "playing" || path1.kind !== "playing")
     throw new Error("expecting both persons to be playing");
 
   let newSchedule = deepClone(schedule);
 
-  let arr0 = personArrayAtPath(newSchedule, path0);
-  let arr1 = personArrayAtPath(newSchedule, path1);
+  let arr0 = pairArrayAtPath(newSchedule, path0);
+  let arr1 = pairArrayAtPath(newSchedule, path1);
 
-  const tmp = arr0[path0.iPerson];
-  arr0[path0.iPerson] = arr1[path1.iPerson];
-  arr1[path1.iPerson] = tmp;
+  const tmp = arr0[path0.iPair];
+  arr0[path0.iPair] = arr1[path1.iPair];
+  arr1[path1.iPair] = tmp;
 
   return newSchedule;
 }
@@ -587,7 +595,6 @@ export class SlotRetryIterator implements IterableIterator<Schedule> {
 
   next(): IteratorResult<Schedule, undefined> {
     const violations = noDuplicatePairsViolations(this.schedule);
-    console.log("next():", violations);
     if (violations.length !== 0) {
       let iRetrySlot = this.lastIdxRetrySlot;
       const violatingPairs = new Set(
@@ -596,9 +603,7 @@ export class SlotRetryIterator implements IterableIterator<Schedule> {
       while (true) {
         iRetrySlot = (iRetrySlot + 1) % this.nSlots;
         const slot = this.schedule.timeSlots[iRetrySlot];
-        console.log("considering", iRetrySlot);
         if (scheduleSlotIncludesAnyPair(slot, violatingPairs)) {
-          console.log("retrying", iRetrySlot);
           this.schedule = withSlotRetried(this.schedule, iRetrySlot);
           this.lastIdxRetrySlot = iRetrySlot;
           break;
