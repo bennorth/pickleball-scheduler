@@ -189,7 +189,9 @@ table.ScheduleView {
     padding: 4px;
     border-radius: 4px;
     user-select: none;
-    cursor: grab;
+    &.canDrag {
+      cursor: grab;
+    }
     &.canDrop {
       background-color: #ffd;
       &.isOver {
@@ -200,7 +202,8 @@ table.ScheduleView {
       background-color: inherit;
       color: #aaa;
     }
-    &.sittingOutTooManyTimes {
+    &.sittingOutTooManyTimes,
+    &.playingTooManyTimes {
       background-color: var(--bs-danger-bg-subtle);
     }
   }

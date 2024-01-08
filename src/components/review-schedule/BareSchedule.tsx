@@ -20,7 +20,7 @@ import classNames from "classnames";
 
 // TODO: Rename because these also apply when dragging a person.
 type PairDragItem = { iSlot: number; personId: PersonId };
-type PairDragProps = { isDragging: boolean };
+type PairDragProps = { canDrag: boolean; isDragging: boolean };
 type PairDropProps = { isOver: boolean; canDrop: boolean };
 
 type PersonViewProps = {
@@ -34,16 +34,23 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
   const poolMember = ctx.personFromId(personId);
 
-  const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
+  const playingTooManyTimes = role === "playing-too-much";
+
+  const [{ canDrag, isDragging }, drag] = useDrag<
+    PairDragItem,
+    void,
+    PairDragProps
+  >(
     () => ({
-      canDrag: ctx.isInteractable,
+      canDrag: ctx.isInteractable && !playingTooManyTimes,
       type: "person",
       item: { iSlot, personId },
       collect: (monitor) => ({
-        isDragging: !!monitor.isDragging(),
+        canDrag: monitor.canDrag(),
+        isDragging: monitor.isDragging(),
       }),
     }),
-    [iSlot, personId]
+    [iSlot, personId, playingTooManyTimes]
   );
   const [{ isOver, canDrop }, drop] = useDrop<
     PairDragItem,
@@ -75,8 +82,8 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
   const classes = classNames(
     "PersonView",
-    { isDragging, isOver, canDrop },
-    { sittingOutTooManyTimes }
+    { canDrag, isDragging, isOver, canDrop },
+    { playingTooManyTimes, sittingOutTooManyTimes }
   );
   return (
     <div ref={drag} className="drag-container">
@@ -106,6 +113,7 @@ function PairView({ iSlot, pair }: PairViewProps) {
       type: "pair",
       item: { iSlot, personId },
       collect: (monitor) => ({
+        canDrag: monitor.canDrag(),
         isDragging: monitor.isDragging(),
       }),
     }),
@@ -198,6 +206,37 @@ function BenchView({ iSlot, bench }: BenchViewProps) {
   );
 }
 
+function PlayingTooMuchList() {
+  const ctx = useRenderScheduleContext();
+
+  const nCourts = ctx.schedule.nCourts;
+  const playingTooMuchIds = ctx.squad.filter((personId) =>
+    ctx
+      .sittingOutFairnessViolationsFromId(personId)
+      .some((violation) => violation.subKind === "too-few")
+  );
+
+  if (playingTooMuchIds.length === 0) return null;
+
+  return (
+    <tbody>
+      <tr>
+        <th>On too much:</th>
+        <td colSpan={nCourts + 1}>
+          {playingTooMuchIds.map((personId) => (
+            <PersonView
+              key={personId}
+              iSlot={0}
+              personId={personId}
+              role="playing-too-much"
+            />
+          ))}
+        </td>
+      </tr>
+    </tbody>
+  );
+}
+
 export function BareSchedule() {
   const pool = useLoadedValue((s) => s.poolState);
   const schedule = useStoreState((s) => s.schedule);
@@ -248,6 +287,7 @@ export function BareSchedule() {
                 />
               ))}
             </tbody>
+            <PlayingTooMuchList />
           </table>
         </div>
       </DndProvider>

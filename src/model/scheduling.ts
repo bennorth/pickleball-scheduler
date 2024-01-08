@@ -52,7 +52,7 @@ type BenchPersonPath = {
 
 type PersonPath = PlayingPersonPath | BenchPersonPath;
 
-export type PersonRole = "playing" | "sitting-out";
+export type PersonRole = "playing" | "sitting-out" | "playing-too-much";
 
 function setDifference<T>(a: Set<T>, b: Set<T>) {
   let result = new Set<T>();
@@ -455,7 +455,7 @@ function sortedSquadsEqual(
   return true;
 }
 
-function squadOfSchedule(schedule: Schedule): Array<PersonId> {
+export function squadOfSchedule(schedule: Schedule): Array<PersonId> {
   const squad = squadOfSlot(schedule.timeSlots[0]);
   for (const slot of schedule.timeSlots.slice(1)) {
     const checkSquad = squadOfSlot(slot);

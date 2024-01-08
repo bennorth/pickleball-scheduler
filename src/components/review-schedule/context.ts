@@ -6,6 +6,7 @@ import {
   SittingOutFairnessViolation,
   noDuplicatePairsViolations,
   sittingOutFairnessViolations,
+  squadOfSchedule,
 } from "../../model/scheduling";
 import { RetrySlotArgs } from "../../model/app";
 
@@ -13,6 +14,7 @@ type RenderScheduleContextT = {
   isInteractable: boolean;
   personFromId(personId: PersonId): PoolMember;
   schedule: Schedule;
+  squad: Array<PersonId>;
   retrySlot({ iSlot }: RetrySlotArgs): void;
   sittingOutFairnessViolationsFromId(
     personId: PersonId
@@ -68,16 +70,19 @@ export function makeRenderScheduleContext(
       mViolations.push(violation);
     }
   }
-  const noDuplicatePairsViolationsFromId = (pairKey: string) =>
+  const noDuplicatePairsViolationsFromPairKey = (pairKey: string) =>
     noDupPairsLut.get(pairKey) ?? [];
+
+  const squad = squadOfSchedule(schedule);
 
   return {
     isInteractable,
     personFromId,
     schedule,
+    squad,
     retrySlot,
     sittingOutFairnessViolationsFromId,
-    noDuplicatePairsViolationsFromPairKey: noDuplicatePairsViolationsFromId,
+    noDuplicatePairsViolationsFromPairKey,
   };
 }
 
