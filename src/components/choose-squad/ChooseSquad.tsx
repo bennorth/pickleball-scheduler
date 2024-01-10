@@ -28,8 +28,10 @@ function SquadSelectionCard(props: PoolMemberCardProps) {
 
 type SortOrder = {
   direction: "ascending" | "descending";
-  key: "name" | "isSelected";
+  key: "name" | "is-selected";
 };
+
+type SortOrderKey = SortOrder["key"];
 
 const defaultSortOrder = { direction: "ascending", key: "name" } as const;
 
@@ -42,7 +44,7 @@ function comparisonFun(sortOrder: SortOrder, squad: Set<PersonId>) {
           if (a.name === b.name) return 0;
           return 1;
         };
-      case "isSelected":
+      case "is-selected":
         return (a: PoolMember, b: PoolMember) => {
           const aSelected = squad.has(a.id);
           const bSelected = squad.has(b.id);
@@ -59,6 +61,28 @@ function comparisonFun(sortOrder: SortOrder, squad: Set<PersonId>) {
   return (a: PoolMember, b: PoolMember) => ascendingCmp(a, b) * directionFactor;
 }
 
+function sortSuffix(key: SortOrderKey, sortOrder: SortOrder): string {
+  return sortOrder.key === key
+    ? sortOrder.direction === "ascending"
+      ? "SU"
+      : "SD"
+    : "S";
+}
+
+function updatedSortOrder(
+  sortOrder: SortOrder,
+  clickedKey: SortOrderKey
+): SortOrder {
+  if (sortOrder.key !== clickedKey) {
+    return { key: clickedKey, direction: "ascending" };
+  }
+  if (sortOrder.direction === "ascending") {
+    return { ...sortOrder, direction: "descending" };
+  } else {
+    return { ...sortOrder, direction: "ascending" };
+  }
+}
+
 export function ChooseSquad() {
   const pool = useLoadedValue((s) => s.poolState);
   const squad = useStoreState((s) => s.squad);
@@ -66,7 +90,7 @@ export function ChooseSquad() {
   const makeSchedule = useStoreActions((a) => a.generateSchedule);
   const selectAll = useStoreActions((a) => a.setSquadToFullPool);
   const clearSelection = useStoreActions((a) => a.clearSquad);
-  const [sortOrder /*, setSortOrder */] = useState<SortOrder>(defaultSortOrder);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
 
   const nSquadMembers = squad.size;
   const toggleIsInSquad = (personId: number) => {
@@ -76,12 +100,12 @@ export function ChooseSquad() {
   let persons = pool.slice();
   persons.sort(comparisonFun(sortOrder, squad));
 
-  const nameSortSuffix =
-    sortOrder.key === "name"
-      ? sortOrder.direction === "ascending"
-        ? "⇩"
-        : "⇧"
-      : "";
+  const nameSortSuffix = sortSuffix("name", sortOrder);
+  const isSelectedSortSuffix = sortSuffix("is-selected", sortOrder);
+
+  function sortClickFun(key: SortOrderKey): () => void {
+    return () => setSortOrder(updatedSortOrder(sortOrder, key));
+  }
 
   return (
     <div className="ChooseSquad">
@@ -96,8 +120,10 @@ export function ChooseSquad() {
       </div>
       <div className="possible-squad-members">
         <div className="sort-order-buttons">
-          <Button>Name {nameSortSuffix}</Button>
-          <Button>Selected V</Button>
+          <Button onClick={sortClickFun("name")}>Name {nameSortSuffix}</Button>
+          <Button onClick={sortClickFun("is-selected")}>
+            Selected {isSelectedSortSuffix}
+          </Button>
         </div>
         {persons.map((person) => (
           <SquadSelectionCard
