@@ -524,6 +524,11 @@ export function sittingOutFairnessViolations(schedule: Schedule) {
     }
   }
 
+  // TODO: Do we want to show the people who are sitting out zero times
+  // even in a situation where, e.g., there are 18 people and 16
+  // sitting-out slots?  (So zero is an OK number of times to sit out
+  // but maybe we still want to see who that is?)
+
   let violations: Array<SittingOutFairnessViolation> = [];
   for (const [personId, nSlots] of nSlotsSittingOut.entries()) {
     if (nSlots < minNSlots)
