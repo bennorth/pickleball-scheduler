@@ -36,13 +36,14 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
   const playingTooManyTimes = role === "playing-too-much";
 
+  const isInteractable = ctx.isInteractable;
   const [{ canDrag, isDragging }, drag] = useDrag<
     PairDragItem,
     void,
     PairDragProps
   >(
     () => ({
-      canDrag: ctx.isInteractable && !playingTooManyTimes,
+      canDrag: isInteractable && !playingTooManyTimes,
       type: "person",
       item: { iSlot, personId },
       collect: (monitor) => ({
@@ -50,7 +51,7 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
         isDragging: monitor.isDragging(),
       }),
     }),
-    [iSlot, personId, playingTooManyTimes]
+    [isInteractable, iSlot, personId, playingTooManyTimes]
   );
   const [{ isOver, canDrop }, drop] = useDrop<
     PairDragItem,
@@ -107,9 +108,11 @@ function PairView({ iSlot, pair }: PairViewProps) {
   const ruleViolations = ctx.noDuplicatePairsViolationsFromPairKey(pairKey);
   const duplicated = ruleViolations.length > 0;
 
+  const isInteractable = ctx.isInteractable;
+
   const [{ isDragging }, drag] = useDrag<PairDragItem, void, PairDragProps>(
     () => ({
-      canDrag: ctx.isInteractable,
+      canDrag: isInteractable,
       type: "pair",
       item: { iSlot, personId },
       collect: (monitor) => ({
@@ -117,7 +120,7 @@ function PairView({ iSlot, pair }: PairViewProps) {
         isDragging: monitor.isDragging(),
       }),
     }),
-    [iSlot, personId]
+    [isInteractable, iSlot, personId]
   );
   const [{ isOver, canDrop }, drop] = useDrop<
     PairDragItem,
