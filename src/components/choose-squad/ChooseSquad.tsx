@@ -87,12 +87,10 @@ export function ChooseSquad() {
   const pool = useLoadedValue((s) => s.poolState);
   const squad = useStoreState((s) => s.squad);
   const toggleAction = useStoreActions((a) => a.toggleIsInSquad);
-  const makeSchedule = useStoreActions((a) => a.generateSchedule);
   const selectAll = useStoreActions((a) => a.setSquadToFullPool);
   const clearSelection = useStoreActions((a) => a.clearSquad);
   const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
 
-  const nSquadMembers = squad.size;
   const toggleIsInSquad = (personId: number) => {
     toggleAction({ personId });
   };
@@ -109,20 +107,19 @@ export function ChooseSquad() {
 
   return (
     <div className="ChooseSquad">
-      <h1 className="page-name">Choose squad</h1>
+      <h1 className="page-name">Who's playing?</h1>
 
-      <div className="button-strip">
-        <Button onClick={ignoreValue(makeSchedule)}>
-          Make schedule with {nSquadMembers} people
-        </Button>
-        <Button onClick={ignoreValue(selectAll)}>Select all</Button>
-        <Button onClick={ignoreValue(clearSelection)}>Clear selection</Button>
-      </div>
       <div className="possible-squad-members">
+        <div className="button-strip">
+          <Button onClick={ignoreValue(selectAll)}>Select all</Button>
+          <Button onClick={ignoreValue(clearSelection)}>Clear selection</Button>
+        </div>
         <div className="sort-order-buttons">
-          <Button onClick={sortClickFun("name")}>Name {nameSortSuffix}</Button>
-          <Button onClick={sortClickFun("is-selected")}>
+          <Button variant="secondary" onClick={sortClickFun("is-selected")}>
             Selected {isSelectedSortSuffix}
+          </Button>
+          <Button variant="secondary" onClick={sortClickFun("name")}>
+            Name {nameSortSuffix}
           </Button>
         </div>
         {persons.map((person) => (

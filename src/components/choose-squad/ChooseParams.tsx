@@ -7,20 +7,41 @@ import { Button } from "react-bootstrap";
 function ChooseParams_Ready() {
   const schedule = useLoadedValue((s) => s.scheduleParamsState);
   const setNCourts = useStoreActions((a) => a.setScheduleNCourts);
+  const setNGames = useStoreActions((a) => a.setScheduleNGames);
 
   const nCourts = schedule.nCourts;
+  const nGames = schedule.nGames;
+
   const incrementNCourts = () => setNCourts({ nCourts: nCourts + 1 });
   const decrementNCourts = () => setNCourts({ nCourts: nCourts - 1 });
-  const decrementEnabled = nCourts > 1;
+  const decrementNCourtsEnabled = nCourts > 1;
+
+  const incrementNGames = () => setNGames({ nGames: nGames + 1 });
+  const decrementNGames = () => setNGames({ nGames: nGames - 1 });
+  const decrementNGamesEnabled = nGames > 1;
+
   return (
     <div className="ChooseParams">
-      <div className="n-courts">
+      <h1 className="page-name">How many courts and games?</h1>
+      <div className="choose-number n-courts">
         <div className="current-value">Number of courts: {nCourts}</div>
         <div className="controls">
-          <Button onClick={incrementNCourts}>+</Button>
-          <Button onClick={decrementNCourts} disabled={!decrementEnabled}>
+          <Button
+            onClick={decrementNCourts}
+            disabled={!decrementNCourtsEnabled}
+          >
             -
           </Button>
+          <Button onClick={incrementNCourts}>+</Button>
+        </div>
+      </div>
+      <div className="choose-number n-games">
+        <div className="current-value">Number of games: {nGames}</div>
+        <div className="controls">
+          <Button onClick={decrementNGames} disabled={!decrementNGamesEnabled}>
+            -
+          </Button>
+          <Button onClick={incrementNGames}>+</Button>
         </div>
       </div>
     </div>

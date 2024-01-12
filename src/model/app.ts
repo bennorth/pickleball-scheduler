@@ -5,6 +5,7 @@ import { PersonId, PoolMember } from "./player-pool";
 import {
   Schedule,
   SlotRetryIterator,
+  nPlayersPerCourt,
   noDuplicatePairsViolations,
   randomSchedule,
   withPairsSwapped,
@@ -24,13 +25,13 @@ const delayMilliseconds = (ms: number) =>
 
 export type ScheduleParams = {
   nCourts: number;
-  slotNames: Array<string>;
+  nGames: number;
   displayTitle: string;
 };
 
 export const ScheduleParams_default: ScheduleParams = {
   nCourts: 4,
-  slotNames: ["Slot 1", "Slot 2", "Slot 3"],
+  nGames: 8,
   displayTitle: "Court allocation",
 };
 
@@ -54,10 +55,8 @@ type DeletePersonArgs = { personId: PersonId };
 type ToggleIsInSquadArgs = { personId: number };
 type EnsureNotInSquadArgs = { personId: number };
 
-type AddScheduleSlotArgs = { name: string };
-type EditScheduleSlotNameArgs = { iSlot: number; newName: string };
-type DeleteScheduleSlotArgs = { iSlot: number };
 type SetScheduleNCourtsArgs = { nCourts: number };
+type SetScheduleNGamesArgs = { nGames: number };
 
 type SwapPairsInSlotArgs = {
   iSlot: number;
@@ -90,17 +89,18 @@ export type AppState = {
   deletePerson: Thunk<AppState, DeletePersonArgs>;
 
   squad: Set<PersonId>;
-  toggleIsInSquad: Action<AppState, ToggleIsInSquadArgs>;
-  clearSquad: Action<AppState, void>;
-  setSquadToFullPool: Action<AppState>;
+  _toggleIsInSquad: Action<AppState, ToggleIsInSquadArgs>;
+  toggleIsInSquad: Thunk<AppState, ToggleIsInSquadArgs>;
+  _clearSquad: Action<AppState, void>;
+  clearSquad: Thunk<AppState, void>;
+  _setSquadToFullPool: Action<AppState, void>;
+  setSquadToFullPool: Thunk<AppState, void>;
   ensureNotInSquad: Action<AppState, EnsureNotInSquadArgs>;
 
   scheduleParamsState: ScheduleParamsState;
   setScheduleParamsState: Action<AppState, ScheduleParamsState>;
-  addScheduleSlot: Thunk<AppState, AddScheduleSlotArgs>;
-  editScheduleSlotName: Thunk<AppState, EditScheduleSlotNameArgs>;
-  deleteScheduleSlot: Thunk<AppState, DeleteScheduleSlotArgs>;
   setScheduleNCourts: Thunk<AppState, SetScheduleNCourtsArgs>;
+  setScheduleNGames: Thunk<AppState, SetScheduleNGamesArgs>;
 
   schedule: Schedule | undefined;
   setSchedule: Action<AppState, Schedule>;
@@ -150,19 +150,35 @@ export let appState: AppState = {
   }),
 
   squad: new Set<PersonId>(),
-  toggleIsInSquad: action((s, { personId }) => {
+  _toggleIsInSquad: action((s, { personId }) => {
     if (s.squad.has(personId)) {
       s.squad.delete(personId);
     } else {
       s.squad.add(personId);
     }
   }),
-  clearSquad: action((s) => {
+  toggleIsInSquad: thunk(async (a, { personId }, helpers) => {
+    a._toggleIsInSquad({ personId });
+    const squadSize = helpers.getState().squad.size;
+    const minNCourts = Math.max(1, Math.floor(squadSize / nPlayersPerCourt));
+    await a.setScheduleNCourts({ nCourts: minNCourts });
+  }),
+  _clearSquad: action((s) => {
     s.squad.clear();
   }),
-  setSquadToFullPool: action((s) => {
+  clearSquad: thunk(async (a, _voidPayload) => {
+    a._clearSquad();
+    await a.setScheduleNCourts({ nCourts: 1 });
+  }),
+  _setSquadToFullPool: action((s) => {
     const pool = loadedValue(s.poolState);
     s.squad = new Set(pool.map((p) => p.id));
+  }),
+  setSquadToFullPool: thunk(async (a, _voidPayload, helpers) => {
+    a._setSquadToFullPool();
+    const squadSize = helpers.getState().squad.size;
+    const minNCourts = Math.max(1, Math.floor(squadSize / nPlayersPerCourt));
+    await a.setScheduleNCourts({ nCourts: minNCourts });
   }),
   ensureNotInSquad: action((s, { personId }) => {
     s.squad.delete(personId);
@@ -171,20 +187,12 @@ export let appState: AppState = {
   scheduleParamsState: loadedFromDbStaleState,
   setScheduleParamsState: propSetterAction("scheduleParamsState"),
 
-  addScheduleSlot: thunk(async (a, { name }) => {
-    await dexieDb.addScheduleSlot(name);
-    a.setScheduleParamsState(loadedFromDbStaleState);
-  }),
-  editScheduleSlotName: thunk(async (a, { iSlot, newName }) => {
-    await dexieDb.editScheduleSlotName(iSlot, newName);
-    a.setScheduleParamsState(loadedFromDbStaleState);
-  }),
-  deleteScheduleSlot: thunk(async (a, { iSlot }) => {
-    await dexieDb.deleteScheduleSlot(iSlot);
-    a.setScheduleParamsState(loadedFromDbStaleState);
-  }),
   setScheduleNCourts: thunk(async (a, { nCourts }) => {
     await dexieDb.setScheduleNCourts(nCourts);
+    a.setScheduleParamsState(loadedFromDbStaleState);
+  }),
+  setScheduleNGames: thunk(async (a, { nGames }) => {
+    await dexieDb.setScheduleNGames(nGames);
     a.setScheduleParamsState(loadedFromDbStaleState);
   }),
 

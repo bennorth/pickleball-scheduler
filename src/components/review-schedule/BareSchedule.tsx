@@ -254,7 +254,9 @@ export function BareSchedule() {
   }
 
   const displayTitle = scheduleParams.displayTitle;
-  const slotNames = scheduleParams.slotNames;
+  const slotNames = Array.from(range(1, scheduleParams.nGames + 1)).map(
+    (gameNumber) => `Game ${gameNumber}`
+  );
 
   const context = makeRenderScheduleContext(
     isInteractable,

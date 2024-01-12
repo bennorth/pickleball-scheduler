@@ -32,28 +32,6 @@ export class AppDexieStorage extends Dexie {
     await this._poolMembers.add(poolMember as PoolMember);
   }
 
-  async addScheduleSlot(name: string) {
-    let params = await this.scheduleParamsRecord_();
-    params.slotNames.push(name);
-    await this._scheduleParams.put(params);
-  }
-
-  async editScheduleSlotName(iSlot: number, newName: string) {
-    let params = await this.scheduleParamsRecord_();
-    if (iSlot < 0 || iSlot >= params.slotNames.length)
-      throw new Error("bad slot index");
-    params.slotNames[iSlot] = newName;
-    await this._scheduleParams.put(params);
-  }
-
-  async deleteScheduleSlot(iSlot: number) {
-    let params = await this.scheduleParamsRecord_();
-    if (iSlot < 0 || iSlot >= params.slotNames.length)
-      throw new Error("bad slot index");
-    params.slotNames.splice(iSlot, 1);
-    await this._scheduleParams.put(params);
-  }
-
   async editPersonName(personId: PersonId, newName: string) {
     let mRecord = await this._poolMembers.get(personId);
     if (mRecord == null) {
@@ -65,6 +43,14 @@ export class AppDexieStorage extends Dexie {
 
   async deletePerson(personId: PersonId) {
     await this._poolMembers.delete(personId);
+  }
+
+  async setScheduleNGames(nGames: number) {
+    if (Math.floor(nGames) !== nGames || nGames < 1)
+      throw new Error("bad nGames");
+    let params = await this.scheduleParamsRecord_();
+    params.nGames = nGames;
+    await this._scheduleParams.put(params);
   }
 
   async setScheduleNCourts(nCourts: number) {

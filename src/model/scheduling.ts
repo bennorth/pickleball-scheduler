@@ -34,7 +34,7 @@ function shuffled<T>(xs: Iterable<T>) {
 
 const nPairsPerCourt = 2;
 const nPlayersPerPair = 2;
-const nPlayersPerCourt = nPairsPerCourt * nPlayersPerPair;
+export const nPlayersPerCourt = nPairsPerCourt * nPlayersPerPair;
 
 type PlayingPersonPath = {
   kind: "playing";
@@ -246,7 +246,7 @@ export function randomSchedule(
   */
 
   const nCourts = params.nCourts;
-  const nTimeSlots = params.slotNames.length;
+  const nTimeSlots = params.nGames;
   const nPlayersPerSlot = nPlayersPerCourt * nCourts;
   const nBench = squad.length - nPlayersPerSlot;
 
