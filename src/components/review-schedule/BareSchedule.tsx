@@ -211,8 +211,6 @@ function BenchView({ iSlot, bench }: BenchViewProps) {
 
 function PlayingTooMuchList() {
   const ctx = useRenderScheduleContext();
-
-  const nCourts = ctx.schedule.nCourts;
   const playingTooMuchIds = ctx.squad.filter((personId) =>
     ctx
       .sittingOutFairnessViolationsFromId(personId)
@@ -220,6 +218,8 @@ function PlayingTooMuchList() {
   );
 
   if (playingTooMuchIds.length === 0) return null;
+
+  const nCourts = ctx.schedule.nCourts;
 
   return (
     <tbody>
