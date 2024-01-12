@@ -24,7 +24,7 @@ function ChooseParams_Ready() {
     <div className="ChooseParams">
       <h1 className="page-name">How many courts and games?</h1>
       <div className="choose-number n-courts">
-        <div className="current-value">Number of courts: {nCourts}</div>
+        <div className="current-value">Courts: {nCourts}</div>
         <div className="controls">
           <Button
             onClick={decrementNCourts}
@@ -36,7 +36,7 @@ function ChooseParams_Ready() {
         </div>
       </div>
       <div className="choose-number n-games">
-        <div className="current-value">Number of games: {nGames}</div>
+        <div className="current-value">Games: {nGames}</div>
         <div className="controls">
           <Button onClick={decrementNGames} disabled={!decrementNGamesEnabled}>
             -

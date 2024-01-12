@@ -106,10 +106,20 @@ h1.page-name {
   }
 }
 
+.ChooseSquad,
+.ChooseParams {
+  margin-top: 2rem;
+}
+
 .ChooseSquad {
   .possible-squad-members {
     margin: auto;
     width: $player-card-width;
+  }
+  .selection-size {
+    margin: 1rem 0rem;
+    font-size: 1.25rem;
+    text-align: center;
   }
   .sort-order-buttons {
     margin-bottom: 0.5rem;
@@ -120,15 +130,16 @@ h1.page-name {
 }
 
 .ChooseParams {
-  margin-top: 2rem;
-
   .choose-number {
-    margin-top: 2rem;
-    width: 17rem;
+    margin: 2rem auto 0rem;
+    width: 13rem;
     display: flex;
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
+    .current-value {
+      font-size: 1.25rem;
+    }
     button:last-child {
       margin-left: 1rem;
     }
@@ -138,6 +149,7 @@ h1.page-name {
 .ChooseSquadAndSlots {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  justify-items: center;
 
   .params-and-button {
     width: 24rem;

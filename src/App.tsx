@@ -8,6 +8,7 @@ import { ReviewSchedule } from "./components/review-schedule/ReviewSchedule";
 import classNames from "classnames";
 import { PrintLayout as SchedulePrintLayout } from "./components/review-schedule/PrintLayout";
 import { ChooseSquadAndSlots } from "./components/choose-squad/ChooseSquadAndSlots";
+import "./font-awesome-lib";
 
 function PageContent() {
   const refreshFromDb = useStoreActions((a) => a.refreshFromDb);

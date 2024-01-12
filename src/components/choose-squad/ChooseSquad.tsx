@@ -5,6 +5,7 @@ import { useLoadedValue } from "../hooks";
 import { ignoreValue } from "../../utils";
 import classNames from "classnames";
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type PoolMemberCardProps = {
   person: PoolMember;
@@ -19,7 +20,9 @@ function SquadSelectionCard(props: PoolMemberCardProps) {
   return (
     <Alert className="SquadSelectionCard" onClick={doToggle}>
       <div className="content">
-        <div className={classes}>YES</div>
+        <div className={classes}>
+          <FontAwesomeIcon icon="circle-check" />
+        </div>
         {props.person.name}
       </div>
     </Alert>
@@ -61,12 +64,16 @@ function comparisonFun(sortOrder: SortOrder, squad: Set<PersonId>) {
   return (a: PoolMember, b: PoolMember) => ascendingCmp(a, b) * directionFactor;
 }
 
-function sortSuffix(key: SortOrderKey, sortOrder: SortOrder): string {
-  return sortOrder.key === key
-    ? sortOrder.direction === "ascending"
-      ? "SU"
-      : "SD"
-    : "S";
+function sortSuffix(key: SortOrderKey, sortOrder: SortOrder): JSX.Element {
+  return sortOrder.key === key ? (
+    sortOrder.direction === "ascending" ? (
+      <FontAwesomeIcon icon="sort-up" />
+    ) : (
+      <FontAwesomeIcon icon="sort-down" />
+    )
+  ) : (
+    <FontAwesomeIcon icon="sort" />
+  );
 }
 
 function updatedSortOrder(
@@ -105,11 +112,16 @@ export function ChooseSquad() {
     return () => setSortOrder(updatedSortOrder(sortOrder, key));
   }
 
+  const playerNoun = squad.size === 1 ? "player" : "players";
+
   return (
     <div className="ChooseSquad">
       <h1 className="page-name">Who's playing?</h1>
 
       <div className="possible-squad-members">
+        <div className="selection-size">
+          {squad.size} {playerNoun}
+        </div>
         <div className="button-strip">
           <Button onClick={ignoreValue(selectAll)}>Select all</Button>
           <Button onClick={ignoreValue(clearSelection)}>Clear selection</Button>
