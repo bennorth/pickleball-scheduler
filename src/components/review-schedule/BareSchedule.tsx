@@ -193,6 +193,10 @@ export function TimeSlotView({ iSlot, name, slot }: TimeSlotViewProps) {
 
 type BenchViewProps = { iSlot: number; bench: TimeSlotAllocation["bench"] };
 function BenchView({ iSlot, bench }: BenchViewProps) {
+  if (bench.length === 0) {
+    return null;
+  }
+
   return (
     <td className="on-bench">
       {bench.map((personId) => {
@@ -265,13 +269,15 @@ export function BareSchedule() {
     retrySlot
   );
 
+  const benchNonempty = schedule.timeSlots[0].bench.length > 0;
+  const mSittingOutHeader = benchNonempty ? <th>Sitting out</th> : null;
   const header = (
     <tr>
       <th />
       {Array.from(range(schedule.nCourts)).map((idx) => (
         <th key={idx}>Court {idx + 1}</th>
       ))}
-      <th>Sitting out</th>
+      {mSittingOutHeader}
     </tr>
   );
 
