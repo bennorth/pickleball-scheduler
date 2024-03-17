@@ -132,6 +132,7 @@ export type AppState = {
 
   personHighlightState: PersonHighlightState;
   dwimPersonHighlight: SAction<PersonId>;
+  clearPersonHighlight: SAction<void>;
 
   refreshFromDb: SAThunk<void>;
 
@@ -246,6 +247,9 @@ export let appState: AppState = {
     } else {
       state.personHighlightState = { kind: "active", personId };
     }
+  }),
+  clearPersonHighlight: action((state) => {
+    state.personHighlightState = kPersonHighlightStateInactive;
   }),
 
   refreshFromDb: thunk(async (a, _voidPayload, helpers) => {
