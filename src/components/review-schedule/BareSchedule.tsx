@@ -89,9 +89,7 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
   return (
     <div ref={drag} className="drag-container">
       <div ref={drop} className="drop-target">
-        <div ref={drag} className={classes}>
-          {poolMember.name}
-        </div>
+        <div className={classes}>{poolMember.name}</div>
       </div>
     </div>
   );
