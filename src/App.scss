@@ -249,6 +249,9 @@ table.ScheduleView {
     &.playingTooManyTimes {
       background-color: var(--bs-danger-bg-subtle);
     }
+    &.isHighlighted {
+      background-color: #beb;
+    }
   }
 
   .pair-joiner {
