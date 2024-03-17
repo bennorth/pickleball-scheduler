@@ -246,6 +246,8 @@ export function BareSchedule() {
   const pool = useLoadedValue((s) => s.poolState);
   const schedule = useStoreState((s) => s.schedule);
   const scheduleParams = useLoadedValue((s) => s.scheduleParamsState);
+  const highlightState = useStoreState((s) => s.personHighlightState);
+  const dwimPersonHighlight = useStoreActions((a) => a.dwimPersonHighlight);
   const retrySlot = useStoreActions((a) => a.retrySlot);
   const isInteractable = useStoreState(
     (s) => s.generationState.kind === "idle"
@@ -264,6 +266,8 @@ export function BareSchedule() {
     isInteractable,
     pool,
     schedule,
+    highlightState,
+    dwimPersonHighlight,
     retrySlot
   );
 
