@@ -78,6 +78,22 @@ type GenerationState =
   | { kind: "idle" }
   | { kind: "running"; seqnum: number; retryIterator: SlotRetryIterator };
 
+// "Slice action" — Action specialised to the slice of state (here the
+// top-level state).
+type SAction<PayloadT> = Action<AppState, PayloadT>;
+
+// "Slice thunk" likewise.
+type SThunk<PayloadT, ResultT = void> = Thunk<
+  AppState,
+  PayloadT,
+  void,
+  AppState,
+  ResultT
+>;
+
+// "Slice async thunk".
+type SAThunk<PayloadT, ResultT = void> = SThunk<PayloadT, Promise<ResultT>>;
+
 export type AppState = {
   page: PageKind;
   setPage: Action<AppState, PageKind>;
