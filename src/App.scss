@@ -195,6 +195,9 @@ table.ScheduleView {
     }
     &.on-bench {
       font-style: italic;
+      .PersonView {
+        width: fit-content;
+      }
     }
   }
 
