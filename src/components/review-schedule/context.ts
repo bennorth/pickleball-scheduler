@@ -14,6 +14,8 @@ type RenderScheduleContextT = {
   isInteractable: boolean;
   personFromId(personId: PersonId): PoolMember;
   schedule: Schedule;
+  personIsHighlighted(personId: PersonId): boolean;
+  onHighlightClick(personId: PersonId): void;
   squad: Array<PersonId>;
   retrySlot({ iSlot }: RetrySlotArgs): void;
   sittingOutFairnessViolationsFromId(
