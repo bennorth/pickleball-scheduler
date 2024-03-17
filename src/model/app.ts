@@ -96,44 +96,44 @@ type SAThunk<PayloadT, ResultT = void> = SThunk<PayloadT, Promise<ResultT>>;
 
 export type AppState = {
   page: PageKind;
-  setPage: Action<AppState, PageKind>;
+  setPage: SAction<PageKind>;
 
   poolState: PoolState;
-  setPoolState: Action<AppState, PoolState>;
-  addToPool: Thunk<AppState, AddToPoolArgs>;
-  editPersonName: Thunk<AppState, EditPersonNameArgs>;
-  deletePerson: Thunk<AppState, DeletePersonArgs>;
+  setPoolState: SAction<PoolState>;
+  addToPool: SAThunk<AddToPoolArgs>;
+  editPersonName: SAThunk<EditPersonNameArgs>;
+  deletePerson: SAThunk<DeletePersonArgs>;
 
   squad: Set<PersonId>;
-  _toggleIsInSquad: Action<AppState, ToggleIsInSquadArgs>;
-  toggleIsInSquad: Thunk<AppState, ToggleIsInSquadArgs>;
-  _clearSquad: Action<AppState, void>;
-  clearSquad: Thunk<AppState, void>;
-  _setSquadToFullPool: Action<AppState, void>;
-  setSquadToFullPool: Thunk<AppState, void>;
-  ensureNotInSquad: Action<AppState, EnsureNotInSquadArgs>;
+  _toggleIsInSquad: SAction<ToggleIsInSquadArgs>;
+  toggleIsInSquad: SAThunk<ToggleIsInSquadArgs>;
+  _clearSquad: SAction<void>;
+  clearSquad: SAThunk<void>;
+  _setSquadToFullPool: SAction<void>;
+  setSquadToFullPool: SAThunk<void>;
+  ensureNotInSquad: SAction<EnsureNotInSquadArgs>;
 
   scheduleParamsState: ScheduleParamsState;
-  setScheduleParamsState: Action<AppState, ScheduleParamsState>;
-  setScheduleNCourts: Thunk<AppState, SetScheduleNCourtsArgs>;
-  setScheduleNGames: Thunk<AppState, SetScheduleNGamesArgs>;
+  setScheduleParamsState: SAction<ScheduleParamsState>;
+  setScheduleNCourts: SAThunk<SetScheduleNCourtsArgs>;
+  setScheduleNGames: SAThunk<SetScheduleNGamesArgs>;
 
   schedule: Schedule | undefined;
-  setSchedule: Action<AppState, Schedule>;
-  updateSchedule: Action<AppState, Schedule>;
+  setSchedule: SAction<Schedule>;
+  updateSchedule: SAction<Schedule>;
 
-  refreshFromDb: Thunk<AppState, void>;
+  refreshFromDb: SAThunk<void>;
 
   generationState: GenerationState;
 
-  generateFreshSchedule: Thunk<AppState, void>;
-  swapPairsInSlot: Action<AppState, SwapPairsInSlotArgs>;
-  swapPersonsInSlot: Action<AppState, SwapPairsInSlotArgs>;
-  retrySlot: Action<AppState, RetrySlotArgs>;
-  retryNext: Action<AppState, void>;
+  generateFreshSchedule: SThunk<void>;
+  swapPairsInSlot: SAction<SwapPairsInSlotArgs>;
+  swapPersonsInSlot: SAction<SwapPairsInSlotArgs>;
+  retrySlot: SAction<RetrySlotArgs>;
+  retryNext: SAction<void>;
 
-  cancelGeneration: Action<AppState, void>;
-  generateSchedule: Thunk<AppState, void>;
+  cancelGeneration: SAction<void>;
+  generateSchedule: SAThunk<void>;
 
   modalUiState: ModalUiState;
 };
