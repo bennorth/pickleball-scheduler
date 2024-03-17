@@ -17,6 +17,7 @@ import { useLoadedValue } from "../hooks";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import classNames from "classnames";
+import { KeyboardEventHandler } from "react";
 
 // TODO: Rename because these also apply when dragging a person.
 type PairDragItem = { iSlot: number; personId: PersonId };
@@ -251,6 +252,7 @@ export function BareSchedule() {
   const scheduleParams = useLoadedValue((s) => s.scheduleParamsState);
   const highlightState = useStoreState((s) => s.personHighlightState);
   const dwimPersonHighlight = useStoreActions((a) => a.dwimPersonHighlight);
+  const clearPersonHighlight = useStoreActions((a) => a.clearPersonHighlight);
   const retrySlot = useStoreActions((a) => a.retrySlot);
   const isInteractable = useStoreState(
     (s) => s.generationState.kind === "idle"
@@ -286,10 +288,18 @@ export function BareSchedule() {
     </tr>
   );
 
+  const onKeyDown: KeyboardEventHandler = (event) => {
+    if (event.key === "Escape") {
+      clearPersonHighlight();
+    }
+    const targetDiv = event.target as HTMLDivElement;
+    targetDiv.blur();
+  };
+
   return (
     <RenderScheduleContext.Provider value={context}>
       <DndProvider backend={HTML5Backend}>
-        <div className="BareSchedule">
+        <div className="BareSchedule" tabIndex={-1} onKeyDown={onKeyDown}>
           <h1>{displayTitle}</h1>
           <table className="ScheduleView">
             <thead>{header}</thead>
