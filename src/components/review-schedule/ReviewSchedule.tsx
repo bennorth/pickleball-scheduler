@@ -4,7 +4,7 @@ import { BareSchedule } from "./BareSchedule";
 
 export function ReviewSchedule() {
   const generationState = useStoreState((s) => s.generationState);
-  const generateSchedule = useStoreActions((a) => a.generateSchedule);
+  const generateScheduleAction = useStoreActions((a) => a.generateSchedule);
   const cancelGeneration = useStoreActions((a) => a.cancelGeneration);
   const clearPersonHighlight = useStoreActions((a) => a.clearPersonHighlight);
   const setPage = useStoreActions((a) => a.setPage);
@@ -12,6 +12,11 @@ export function ReviewSchedule() {
   const switchToPrintLayout = () => {
     clearPersonHighlight();
     setPage("schedule-print-layout");
+  };
+
+  const generateSchedule = () => {
+    clearPersonHighlight();
+    generateScheduleAction();
   };
 
   const buttons = (() => {
