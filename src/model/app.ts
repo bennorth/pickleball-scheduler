@@ -78,6 +78,14 @@ type GenerationState =
   | { kind: "idle" }
   | { kind: "running"; seqnum: number; retryIterator: SlotRetryIterator };
 
+export type PersonHighlightState =
+  | { kind: "inactive" }
+  | { kind: "active"; personId: PersonId };
+
+const kPersonHighlightStateInactive: PersonHighlightState = {
+  kind: "inactive",
+};
+
 // "Slice action" — Action specialised to the slice of state (here the
 // top-level state).
 type SAction<PayloadT> = Action<AppState, PayloadT>;
