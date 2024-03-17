@@ -83,13 +83,16 @@ function PersonView({ iSlot, personId, role }: PersonViewProps) {
 
   const classes = classNames(
     "PersonView",
+    { isHighlighted: ctx.personIsHighlighted(personId) },
     { canDrag, isDragging, isOver, canDrop },
     { playingTooManyTimes, sittingOutTooManyTimes }
   );
   return (
     <div ref={drag} className="drag-container">
       <div ref={drop} className="drop-target">
-        <div className={classes}>{poolMember.name}</div>
+        <div onClick={() => ctx.onHighlightClick(personId)} className={classes}>
+          {poolMember.name}
+        </div>
       </div>
     </div>
   );
