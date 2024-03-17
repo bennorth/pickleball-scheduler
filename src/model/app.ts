@@ -130,6 +130,8 @@ export type AppState = {
   setSchedule: SAction<Schedule>;
   updateSchedule: SAction<Schedule>;
 
+  personHighlightState: PersonHighlightState;
+
   refreshFromDb: SAThunk<void>;
 
   generationState: GenerationState;
@@ -232,6 +234,8 @@ export let appState: AppState = {
   updateSchedule: action((s, schedule) => {
     s.schedule = schedule;
   }),
+
+  personHighlightState: kPersonHighlightStateInactive,
 
   refreshFromDb: thunk(async (a, _voidPayload, helpers) => {
     const poolStateKind = helpers.getState().poolState.kind;
