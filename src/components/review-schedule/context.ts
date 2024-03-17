@@ -8,7 +8,7 @@ import {
   sittingOutFairnessViolations,
   squadOfSchedule,
 } from "../../model/scheduling";
-import { RetrySlotArgs } from "../../model/app";
+import { PersonHighlightState, RetrySlotArgs } from "../../model/app";
 
 type RenderScheduleContextT = {
   isInteractable: boolean;
@@ -44,6 +44,8 @@ export function makeRenderScheduleContext(
   isInteractable: boolean,
   pool: Array<PoolMember>,
   schedule: Schedule,
+  highlightState: PersonHighlightState,
+  onHighlightClick: (personId: PersonId) => void,
   retrySlot: ({ iSlot }: RetrySlotArgs) => void
 ): RenderScheduleContextT {
   const personFromId = makePersonLutFun(pool);
@@ -77,10 +79,15 @@ export function makeRenderScheduleContext(
 
   const squad = squadOfSchedule(schedule);
 
+  const personIsHighlighted = (personId: PersonId) =>
+    highlightState.kind === "active" && highlightState.personId === personId;
+
   return {
     isInteractable,
     personFromId,
     schedule,
+    personIsHighlighted,
+    onHighlightClick,
     squad,
     retrySlot,
     sittingOutFairnessViolationsFromId,
