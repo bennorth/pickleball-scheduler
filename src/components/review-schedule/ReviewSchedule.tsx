@@ -6,9 +6,13 @@ export function ReviewSchedule() {
   const generationState = useStoreState((s) => s.generationState);
   const generateSchedule = useStoreActions((a) => a.generateSchedule);
   const cancelGeneration = useStoreActions((a) => a.cancelGeneration);
+  const clearPersonHighlight = useStoreActions((a) => a.clearPersonHighlight);
   const setPage = useStoreActions((a) => a.setPage);
 
-  const switchToPrintLayout = () => setPage("schedule-print-layout");
+  const switchToPrintLayout = () => {
+    clearPersonHighlight();
+    setPage("schedule-print-layout");
+  };
 
   const buttons = (() => {
     switch (generationState.kind) {
