@@ -131,6 +131,7 @@ export type AppState = {
   updateSchedule: SAction<Schedule>;
 
   personHighlightState: PersonHighlightState;
+  dwimPersonHighlight: SAction<PersonId>;
 
   refreshFromDb: SAThunk<void>;
 
@@ -236,6 +237,16 @@ export let appState: AppState = {
   }),
 
   personHighlightState: kPersonHighlightStateInactive,
+  dwimPersonHighlight: action((state, personId) => {
+    const alreadyHighlighted =
+      state.personHighlightState.kind === "active" &&
+      state.personHighlightState.personId === personId;
+    if (alreadyHighlighted) {
+      state.personHighlightState = kPersonHighlightStateInactive;
+    } else {
+      state.personHighlightState = { kind: "active", personId };
+    }
+  }),
 
   refreshFromDb: thunk(async (a, _voidPayload, helpers) => {
     const poolStateKind = helpers.getState().poolState.kind;
