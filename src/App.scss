@@ -204,8 +204,9 @@ table.ScheduleView {
   .PairView {
     user-select: none;
     cursor: grab;
-    padding: 0.25rem;
+    padding: 0px;
     border-radius: 4px;
+    border: 2px solid transparent;
     display: grid;
     grid-template-columns: auto auto auto;
     justify-content: center;
@@ -215,6 +216,7 @@ table.ScheduleView {
       background-color: #ffd;
       &.isOver {
         background-color: #ff8;
+        border-color: #22a;
       }
     }
     &.isDragging {
@@ -234,6 +236,7 @@ table.ScheduleView {
   .PersonView {
     padding: 4px;
     border-radius: 4px;
+    border: 2px solid transparent;
     user-select: none;
     &.canDrag {
       cursor: grab;
@@ -242,6 +245,7 @@ table.ScheduleView {
       background-color: #ffd;
       &.isOver {
         background-color: #ff8;
+        border-color: #22a;
       }
     }
     &.isDragging {
